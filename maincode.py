@@ -7,16 +7,29 @@ from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 # from webserver import keep_alive  # для деплоя
 
-last_message_id = None
+# vk
+vk_session1 = vk_api.VkApi(token=os.environ.get("BTOKEN"), api_version=API_VERSION)
+vk1 = vk_session1.get_api()
+longpoll = VkBotLongPoll(vk_session1, os.environ.get("GROUPID"))
+
+vk_session2 = vk_api.VkApi(token=os.environ.get("USERID"), api_version=API_VERSION)
+vk2 = vk_session2.get_api()
+
+# keyboards
+kboards = []
+for i in range(4):
+    keyboard = VkKeyboard(inline=True)
+    kboards.append(keyboard)
+
+# carousel
+carousel = ''
+
+# message
+last_message_id = 0
+
 
 def main():
-    global last_message_id
-    vk_session1 = vk_api.VkApi(token=os.environ.get("BTOKEN"), api_version=API_VERSION)
-    vk1 = vk_session1.get_api()
-    longpoll = VkBotLongPoll(vk_session1, os.environ.get("GROUPID"))
-
-    vk_session2 = vk_api.VkApi(token=os.environ.get("USERID"), api_version=API_VERSION)
-    vk2 = vk_session2.get_api()
+    global kboards, carousel, last_message_id
 
     market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
     response = vk1.groups.getById(group_id=os.environ.get("GROUPID"))
@@ -33,115 +46,92 @@ def main():
         element = create_element(item, group_addr)
         carousel['elements'].append(element)
 
-    keyboard_1 = VkKeyboard(inline=True)
-    keyboard_1.add_callback_button(
+    kboards[0].add_callback_button(
         label="Текстовые сообщения",
         color=VkKeyboardColor.SECONDARY,
-        payload={"type": "mode1"},
+        payload={"type": "menu1"},
     )
-    keyboard_1.add_line()
-    keyboard_1.add_callback_button(
+    kboards[0].add_line()
+    kboards[0].add_callback_button(
         label="Голосовые сообщения",
         color=VkKeyboardColor.SECONDARY,
-        payload={"type": "mode2"},
+        payload={"type": "menu1"},
     )
 
-    keyboard_2 = VkKeyboard(inline=True)
-    keyboard_2.add_callback_button(
+    kboards[1].add_callback_button(
+        label="Улуны",
+        color=VkKeyboardColor.SECONDARY,
+        payload={"type": "menu2"},
+    )
+    kboards[1].add_line()
+    kboards[1].add_callback_button(
         label="Назад",
         color=VkKeyboardColor.NEGATIVE,
         payload={"type": "back"},
     )
-    keyboard_3 = VkKeyboard(inline=True)
-    keyboard_3.add_callback_button(
-        label="Товары",
-        color=VkKeyboardColor.POSITIVE,
-        payload={"type": "shop"},
+
+    kboards[2].add_callback_button(
+        label="Те Гуань Инь",
+        color=VkKeyboardColor.SECONDARY,
+        payload={"type": "menu3"},
     )
-    keyboard_3.add_callback_button(
-        label="Пообщаться",
-        color=VkKeyboardColor.POSITIVE,
-        payload={"type": "keyboard_inline"},
+    kboards[2].add_line()
+    kboards[2].add_callback_button(
+        label="Назад",
+        color=VkKeyboardColor.NEGATIVE,
+        payload={"type": "back"},
     )
 
-    f_toggle: bool = False
+    kboards[3].add_callback_button(
+        label="Назад",
+        color=VkKeyboardColor.NEGATIVE,
+        payload={"type": "back"},
+    )
+
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
-            if "callback" not in event.obj.client_info["button_actions"]:
-                print(
-                    f'Клиент user_id{event.obj.message["from_id"]} не поддерживает callback-кнопки.'
-                )
+            if event.obj.message["text"] == "Начать":
+                history = vk1.messages.getHistory(peer_id=event.obj.message["from_id"])
+                messages_with_keyboard = [message for message in history['items'] if 'keyboard' in message]
+                for message in messages_with_keyboard:
+                    vk1.messages.delete(
+                        message_ids=message['id'],
+                        delete_for_all=1
+                    )
 
-            if last_message_id:
-                vk1.messages.delete(
-                    message_ids=last_message_id,
-                    delete_for_all=1
+                last_message_id = vk1.messages.send(
+                    user_id=event.obj.message["from_id"],
+                    random_id=get_random_id(),
+                    peer_id=event.obj.message["peer_id"],
+                    message=MESSAGES[0],
+                    keyboard=kboards[0].get_keyboard(),
                 )
-            last_message_id = vk1.messages.send(
-                user_id=event.obj.message["from_id"],
-                random_id=get_random_id(),
-                peer_id=event.obj.message["from_id"],
-                message="Хотите посмотреть товары или пообщаться?",
-                keyboard=keyboard_3.get_keyboard(),
-            )
-            print('было: ' + str(take_position(event.obj.message["from_id"])))
-            update_position(1, event.obj.message["from_id"])
+                update_position(0, event.obj.message["from_id"])
+            else:
+                vk1.messages.send(
+                    user_id=event.obj.message["from_id"],
+                    random_id=get_random_id(),
+                    peer_id=event.obj.message["from_id"],
+                    message="Чтобы вернуться в начало меню, напишите \"Начать\"",
+                )
 
         elif event.type == VkBotEventType.MESSAGE_EVENT:
-            if event.obj.payload.get("type") == NOT_INLINE_KEYBOARD[0]:
-                vk1.messages.delete(
-                    message_ids=last_message_id,
-                    delete_for_all=1
-                )
-                last_message_id = vk1.messages.send(
-                    user_id=event.obj.user_id,
-                    random_id=get_random_id(),
-                    peer_id=event.obj.peer_id,
-                    message="Товары",
-                    template=json.dumps(carousel)
-                )
-                vk1.messages.sendMessageEventAnswer(
-                    event_id=event.obj.event_id,
-                    user_id=event.obj.user_id,
-                    peer_id=event.obj.peer_id
-                )
-                print('было: ' + str(take_position(event.obj.user_id)))
+            if event.obj.payload.get("type") == CALLBACK_MODES[0]:  # menu1
+                send_message(event=event, pos=1)
+                update_position(1, event.obj.user_id)
+
+            elif event.obj.payload.get("type") == CALLBACK_MODES[1]:  # menu2
+                send_message(event=event, pos=2)
                 update_position(2, event.obj.user_id)
-            elif event.obj.payload.get("type") == NOT_INLINE_KEYBOARD[1]:
-                vk1.messages.delete(
-                    message_ids=last_message_id,
-                    delete_for_all=1
-                )
-                last_message_id = vk1.messages.send(
-                    user_id=event.obj.user_id,
-                    random_id=get_random_id(),
-                    peer_id=event.obj.peer_id,
-                    message="Режим общения",
-                    keyboard=keyboard_1.get_keyboard(),
-                )
-                vk1.messages.sendMessageEventAnswer(
-                    event_id=event.obj.event_id,
-                    user_id=event.obj.user_id,
-                    peer_id=event.obj.peer_id
-                )
-                print('было: ' + str(take_position(event.obj.user_id)))
-                update_position(2, event.obj.user_id)
-            elif event.obj.payload.get("type") in CALLBACK_MODES:
-                mode = event.obj.payload.get("type")
-                vk1.messages.delete(
-                    message_ids=last_message_id,
-                    delete_for_all=1
-                )
-                last_message_id = vk1.messages.send(
-                    user_id=event.obj.user_id,
-                    random_id=get_random_id(),
-                    peer_id=event.obj.peer_id,
-                    message=("Режим общения" if f_toggle else "Понял, пишу" if mode == "mode1" else "Понял, говорю"),
-                    keyboard=(keyboard_1 if f_toggle else keyboard_2).get_keyboard()
-                )
-                print('было: '+str(take_position(event.obj.user_id)))
-                update_position((2 if f_toggle else 3), event.obj.user_id)
-                f_toggle = not f_toggle
+
+            elif event.obj.payload.get("type") == CALLBACK_MODES[2]:  # menu3
+                send_message(event=event, pos=3)
+                update_position(3, event.obj.user_id)
+
+            elif event.obj.payload.get("type") == CALLBACK_MODES[3]:  # back
+                newpos = take_position(event.obj.user_id)-1
+                send_message(event=event, pos=newpos)
+                update_position(newpos, event.obj.user_id)
 
 
 def create_element(item, group_addr):
@@ -195,7 +185,6 @@ def update_position(new_pos, user_id):
         else:
             c.execute("UPDATE users SET position = ? WHERE userid = ?", (new_pos, user_id))
         conn.commit()
-        print(str(user_id)+'  on   '+str(new_pos))
     finally:
         conn.close()
     return
@@ -214,6 +203,28 @@ def take_position(user_id):
             return row[0]
     finally:
         conn.close()
+
+
+def send_message(event, pos):  # only for message_event
+    global last_message_id
+    vk1.messages.delete(
+        message_ids=last_message_id,
+        delete_for_all=1
+    )
+
+    last_message_id = vk1.messages.send(
+        user_id=event.obj.user_id,
+        random_id=get_random_id(),
+        peer_id=event.obj.peer_id,
+        message=MESSAGES[pos],
+        keyboard=kboards[pos].get_keyboard(),
+    )
+
+    vk1.messages.sendMessageEventAnswer(
+        event_id=event.obj.event_id,
+        user_id=event.obj.user_id,
+        peer_id=event.obj.peer_id
+    )
 
 
 # keep_alive() #для деплоя
