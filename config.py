@@ -10,7 +10,7 @@ ADMIN = '350929022'
 group_id = '-'+str(GROUPID)
 
 # списки
-CALLBACK_MODES = ("menu1", "menu2", "menu3", "back", "admin")
+CALLBACK_MODES = ("next", "back", "admin")
 MESSAGES = ("Режим общения", "Сорт чая", "Выберите чай", "Выбор сделан")
 ADMIN_MESSAGES = ("Можете поменять названия кнопок",)
 PAYLOAD_TEXT = ('txt', 'vc')
@@ -22,7 +22,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Текстовые сообщения",
-                "payload": f'{{\"type\": \"menu1\", \"text\": "{PAYLOAD_TEXT[0]}"}}'
+                "payload": f'{{\"type\": \"next\", \"text\": "{PAYLOAD_TEXT[0]}"}}'
             },
             "color": "secondary"
         }
@@ -32,7 +32,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Голосовые сообщения",
-                "payload": f'{{\"type\": \"menu1\", \"text\": "{PAYLOAD_TEXT[1]}"}}'
+                "payload": f'{{\"type\": \"next\", \"text\": "{PAYLOAD_TEXT[1]}"}}'
             },
             "color": "secondary"
         }
@@ -64,7 +64,7 @@ json2 = [
             "action": {
                 "type": "callback",
                 "label": "Дальше",
-                "payload": "{\"type\": \"menu2\"}"
+                "payload": "{\"type\": \"next\"}"
             },
             "color": "secondary"
         }
@@ -87,7 +87,7 @@ json3 = [
             "action": {
                 "type": "callback",
                 "label": "Дальше",
-                "payload": "{\"type\": \"menu3\"}"
+                "payload": "{\"type\": \"next\"}"
             },
             "color": "secondary"
         }
@@ -106,15 +106,90 @@ json4 = [
         }
     ]
 ]
-json_admin = [
-    {
-        "action": {
-            "type": "callback",
-            "label": "Админ",
-            "payload": "{\"type\": \"admin\"}"
-        },
-        "color": "primary"
-    }
+json_admin1_entrance = [
+    [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Админ",
+                "payload": "{\"type\": \"admin\"}"
+            },
+            "color": "primary"
+        }
+    ],
+]
+json_admin1_exit = [
+    [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Выйти из режима \"Админ\"",
+                "payload": "{\"type\": \"admin\"}"
+            },
+            "color": "primary"
+        }
+    ],
+]
+json_admin2 = [
+    [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Добавить кнопку",
+                "payload": "{\"type\": \"add_butt\"}"
+            },
+            "color": "primary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Удалить кнопку",
+                "payload": "{\"type\": \"del_butt\"}"
+            },
+            "color": "primary"
+        }
+    ]
+]
+
+json_admin3 = [
+    [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Добавить текст",
+                "payload": "{\"type\": \"add_text\"}"
+            },
+            "color": "primary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Удалить текст",
+                "payload": "{\"type\": \"del_text\"}"
+            },
+            "color": "primary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Добавить гс",
+                "payload": "{\"type\": \"add_voice\"}"
+            },
+            "color": "primary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Удалить гс",
+                "payload": "{\"type\": \"del_voice\"}"
+            },
+            "color": "primary"
+        }
+    ]
 ]
 keyboard_buttons.append(json1.copy())
 keyboard_buttons.append(json2.copy())
