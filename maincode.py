@@ -31,7 +31,7 @@ added_butt_text = ""
 def main():
     global carousel, kboards, admin_kboards, added_butt_label, added_butt_text
 
-    state = False
+    state = read_admin_mode()
     market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
     response = vk1.groups.getById(group_id=GROUPID)
 
@@ -45,39 +45,8 @@ def main():
         element = create_element(item, group_addr)
         carousel['elements'].append(element)
 
-    # keyboards
-    for i in range(4):
-        kboard1 = template_kboard.copy()
-        kboard2 = template_kboard.copy()
-        kboard1['buttons'] = keyboard_buttons[i].copy()
-        kboard2['buttons'] = keyboard_buttons[i].copy()
-        kboards.append(kboard1)
-        admin_kboards.append(kboard2)
-
-    if read_admin_mode() is True:
-        for i in range(len(json_admin1_exit)):
-            admin_kboards[0]['buttons'].append(json_admin1_exit[i])
-    else:
-        for i in range(len(json_admin1_entrance)):
-            admin_kboards[0]['buttons'].append(json_admin1_entrance[i])
-
-    for i in range(len(json_admin2)):
-        admin_kboards[1]['buttons'].append(json_admin2[i])
-        admin_kboards[2]['buttons'].append(json_admin2[i])
-    for i in range(len(json_admin3)):
-        admin_kboards[3]['buttons'].append(json_admin3[i])
-
-    buttons = take_buttons(1)
-    if buttons is not None:
-        for i in range(len(buttons)):
-            kboards[1]['buttons'].append(buttons[i])
-            admin_kboards[1]['buttons'].append(buttons[i])
-
-    buttons = take_buttons(2)
-    if buttons is not None:
-        for i in range(len(buttons)):
-            kboards[2]['buttons'].append(buttons[i])
-            admin_kboards[2]['buttons'].append(buttons[i])
+    # keyboard
+    create_keyboard()
             
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
@@ -151,19 +120,7 @@ def main():
                     update_position(0, event.obj.user_id)
 
                 elif event.obj.payload.get("type") == CALLBACK_MODES[3]:  # add_butt
-                    new_last_message_ids = take_last_message_id(event.obj.user_id)
-                    cancel = template_kboard.copy()
-                    cancel['buttons'] = []
-                    cancel['buttons'].append(cancel_butt)
-                    new_last_message_id = vk1.messages.send(
-                        user_id=event.obj.user_id,
-                        random_id=get_random_id(),
-                        peer_id=event.obj.peer_id,
-                        message="Напишите название добавляемой кнопки либо отмените действие",
-                        keyboard=json.dumps(cancel)
-                    )
-                    new_last_message_ids.append(new_last_message_id)
-                    update_last_message_id(new_last_message_ids, event.obj.user_id)
+                    send_message_cancel(event)
                     pos = int(take_position(event.obj.user_id))
                     for event_add in longpoll.listen():
                         if event_add.type == VkBotEventType.MESSAGE_EVENT:
@@ -193,6 +150,69 @@ def main():
                                 update_buttons(pos, keyboard)
                                 send_message_new(event=event_add, pos=pos, kboard=admin_kboards)
                                 break
+
+                elif event.obj.payload.get("type") == CALLBACK_MODES[4]:  # del_butt
+                    send_message_cancel(event)
+                    pos = int(take_position(event.obj.user_id))
+                    break_flag = False
+                    for event_del in longpoll.listen():
+                        if event_del.type == VkBotEventType.MESSAGE_EVENT:
+                            if event_del.obj.payload.get("type") == "cancel":
+                                send_message(event=event_del, pos=pos, kboard=admin_kboards)
+                                break
+                            if event_del.obj.payload.get("type") == CALLBACK_MODES[0]:
+                                keyboard = take_buttons(pos)
+                                text1 = event_del.obj.payload.get("text")
+                                for i in range(len(keyboard)):
+                                    keyboard_copy = keyboard.copy()
+                                    text2 = eval(keyboard_copy[i][0]['action']['payload']).get("text")
+                                    if str(text1) == str(text2):
+                                        del keyboard[i]
+                                        update_buttons(pos, keyboard)
+                                        create_keyboard()
+                                        send_message(event=event_del, pos=pos, kboard=admin_kboards)
+                                        break_flag = True
+                                        break
+                                if break_flag is True:
+                                    break
+
+
+def create_keyboard():
+    global kboards, admin_kboards
+    kboards = []
+    admin_kboards = []
+    for i in range(4):
+        kboard1 = template_kboard.copy()
+        kboard2 = template_kboard.copy()
+        kboard1['buttons'] = keyboard_buttons[i].copy()
+        kboard2['buttons'] = keyboard_buttons[i].copy()
+        kboards.append(kboard1)
+        admin_kboards.append(kboard2)
+
+    if read_admin_mode() is True:
+        for i in range(len(json_admin1_exit)):
+            admin_kboards[0]['buttons'].append(json_admin1_exit[i])
+    else:
+        for i in range(len(json_admin1_entrance)):
+            admin_kboards[0]['buttons'].append(json_admin1_entrance[i])
+
+    for i in range(len(json_admin2)):
+        admin_kboards[1]['buttons'].append(json_admin2[i])
+        admin_kboards[2]['buttons'].append(json_admin2[i])
+    for i in range(len(json_admin3)):
+        admin_kboards[3]['buttons'].append(json_admin3[i])
+
+    buttons = take_buttons(1)
+    if buttons is not None:
+        for i in range(len(buttons)):
+            kboards[1]['buttons'].append(buttons[i])
+            admin_kboards[1]['buttons'].append(buttons[i])
+
+    buttons = take_buttons(2)
+    if buttons is not None:
+        for i in range(len(buttons)):
+            kboards[2]['buttons'].append(buttons[i])
+            admin_kboards[2]['buttons'].append(buttons[i])
 
 
 def update_buttons(column, buttons):
@@ -348,6 +368,7 @@ def update_admin_mode(state):
 def read_admin_mode():
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS admin (state INTEGER)''')
     c.execute("SELECT state FROM admin WHERE rowid=1")
     data = c.fetchone()
     conn.close()
@@ -391,6 +412,19 @@ def send_message(event, pos, kboard):  # only for message_event
         user_id=event.obj.user_id,
         peer_id=event.obj.peer_id
     )
+
+
+def send_message_cancel(event):  # only for message_event
+    new_last_message_ids = take_last_message_id(event.obj.user_id)
+    new_last_message_id = vk1.messages.send(
+        user_id=event.obj.user_id,
+        random_id=get_random_id(),
+        peer_id=event.obj.peer_id,
+        message="Напишите название добавляемой кнопки либо отмените действие",
+        keyboard=json.dumps(cancel)
+    )
+    new_last_message_ids.append(new_last_message_id)
+    update_last_message_id(new_last_message_ids, event.obj.user_id)
 
 
 def send_message_new(event, pos, kboard):  # only for message_new

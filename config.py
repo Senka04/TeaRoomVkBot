@@ -185,13 +185,19 @@ template_kboard = {
     "buttons": []
 }
 
-cancel_butt = [
-    {
-        "action": {
-            "type": "callback",
-            "label": "Отмена",
-            "payload": "{\"type\": \"cancel\"}"
-        },
-        "color": "secondary"
-    }
-]
+cancel = {
+    "inline": True,
+    "buttons": [
+        [
+            {
+                "action": {
+                    "type": "callback",
+                    "label": "Отмена",
+                    "payload": "{\"type\": \"cancel\"}"
+                },
+                "color": "secondary"
+            }
+        ]
+    ]
+}
+
