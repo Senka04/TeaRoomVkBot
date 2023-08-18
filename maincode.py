@@ -3,6 +3,7 @@ import json
 import vk_api
 import sqlite3
 import time
+from transliterate import slugify
 from config import *
 from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -23,22 +24,19 @@ carousel = ''
 kboards = []
 admin_kboards = []
 
+added_butt_label = ""
+added_butt_text = ""
+
 
 def main():
-    state = False
-    global carousel, kboards, admin_kboards
+    global carousel, kboards, admin_kboards, added_butt_label, added_butt_text
 
+    state = False
     market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
     response = vk1.groups.getById(group_id=GROUPID)
 
     # carousel
-    try:
-        with open('carousel.json', 'r', encoding='UTF-8') as f:
-            template = json.load(f)
-    except FileNotFoundError:
-        return None
-
-    carousel = template.copy()
+    carousel = template_carousel.copy()
     carousel['elements'] = []
 
     group_addr = response[0]['screen_name']
@@ -48,15 +46,9 @@ def main():
         carousel['elements'].append(element)
 
     # keyboards
-    try:
-        with open('keyboard.json', 'r', encoding='UTF-8') as f:
-            template1 = json.load(f)
-    except FileNotFoundError:
-        return None
-
     for i in range(4):
-        kboard1 = template1.copy()
-        kboard2 = template1.copy()
+        kboard1 = template_kboard.copy()
+        kboard2 = template_kboard.copy()
         kboard1['buttons'] = keyboard_buttons[i].copy()
         kboard2['buttons'] = keyboard_buttons[i].copy()
         kboards.append(kboard1)
@@ -75,6 +67,18 @@ def main():
     for i in range(len(json_admin3)):
         admin_kboards[3]['buttons'].append(json_admin3[i])
 
+    buttons = take_buttons(1)
+    if buttons is not None:
+        for i in range(len(buttons)):
+            kboards[1]['buttons'].append(buttons[i])
+            admin_kboards[1]['buttons'].append(buttons[i])
+
+    buttons = take_buttons(2)
+    if buttons is not None:
+        for i in range(len(buttons)):
+            kboards[2]['buttons'].append(buttons[i])
+            admin_kboards[2]['buttons'].append(buttons[i])
+            
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
             if event.obj.message["text"] == "Начать":
@@ -96,22 +100,10 @@ def main():
                 #     template=json.dumps(carousel),
                 # )
                 if str(ADMIN) == str(event.obj.message["from_id"]):
-                    new_last_message_id = vk1.messages.send(
-                        user_id=event.obj.message["from_id"],
-                        random_id=get_random_id(),
-                        peer_id=event.obj.message["peer_id"],
-                        message=MESSAGES[0],
-                        keyboard=json.dumps(admin_kboards[0]),
-                    )
+                    send_message_new(event=event, pos=0, kboard=admin_kboards)
                 else:
-                    new_last_message_id = vk1.messages.send(
-                        user_id=event.obj.message["from_id"],
-                        random_id=get_random_id(),
-                        peer_id=event.obj.message["peer_id"],
-                        message=MESSAGES[0],
-                        keyboard=json.dumps(kboards[0]),
-                    )
-                update_last_message_id(new_last_message_id, event.obj.message["from_id"])
+                    send_message_new(event=event, pos=0, kboard=kboards)
+
                 update_position(0, event.obj.message["from_id"])
             else:
                 vk1.messages.send(
@@ -128,7 +120,7 @@ def main():
                 conversation_message_ids=conversation_message_id
             )
             message_id = message['items'][0]['id']
-            if message_id == take_last_message_id(event.obj.user_id):
+            if message_id in take_last_message_id(event.obj.user_id):
                 if event.obj.payload.get("type") == CALLBACK_MODES[0]:  # next
                     pos = take_position(event.obj.user_id)
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
@@ -157,6 +149,88 @@ def main():
                     else:
                         send_message(event=event, pos=0, kboard=kboards)
                     update_position(0, event.obj.user_id)
+
+                elif event.obj.payload.get("type") == CALLBACK_MODES[3]:  # add_butt
+                    new_last_message_ids = take_last_message_id(event.obj.user_id)
+                    cancel = template_kboard.copy()
+                    cancel['buttons'] = []
+                    cancel['buttons'].append(cancel_butt)
+                    new_last_message_id = vk1.messages.send(
+                        user_id=event.obj.user_id,
+                        random_id=get_random_id(),
+                        peer_id=event.obj.peer_id,
+                        message="Напишите название добавляемой кнопки либо отмените действие",
+                        keyboard=json.dumps(cancel)
+                    )
+                    new_last_message_ids.append(new_last_message_id)
+                    update_last_message_id(new_last_message_ids, event.obj.user_id)
+                    pos = int(take_position(event.obj.user_id))
+                    for event_add in longpoll.listen():
+                        if event_add.type == VkBotEventType.MESSAGE_EVENT:
+                            if event_add.obj.payload.get("type") == "cancel":
+                                send_message(event=event_add, pos=pos, kboard=admin_kboards)
+                                break
+                        elif event_add.type == VkBotEventType.MESSAGE_NEW:
+                            added_butt_label = str(event_add.obj.message["text"])
+                            added_butt_text = slugify(added_butt_label)
+                            new_butt = [
+                                {
+                                    "action": {
+                                        "type": "callback",
+                                        "label": f"{added_butt_label}",
+                                        "payload": f'{{\"type\": \"next\", \"text\": "{added_butt_text}"}}'
+                                    },
+                                    "color": "secondary"
+                                }
+                            ]
+                            keyboard = take_buttons(pos)
+                            if keyboard is None:
+                                keyboard = []
+                            if str(ADMIN) == str(event_add.obj.message["from_id"]) and read_admin_mode() is True:
+                                kboards[pos]['buttons'].append(new_butt)
+                                admin_kboards[pos]['buttons'].append(new_butt)
+                                keyboard.append(new_butt)
+                                update_buttons(pos, keyboard)
+                                send_message_new(event=event_add, pos=pos, kboard=admin_kboards)
+                                break
+
+
+def update_buttons(column, buttons):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS buttons (menu1 TEXT, menu2 TEXT)''')
+
+    c.execute("SELECT COUNT(*) FROM buttons")
+    row_count = c.fetchone()[0]
+
+    # Вставка новой строки, если таблица пуста
+    if row_count == 0:
+        c.execute("INSERT INTO buttons (menu1, menu2) VALUES ('', '')")
+
+    if column == 1:
+        c.execute("UPDATE buttons SET menu1 = ? WHERE rowid=1", (str(buttons),))
+    elif column == 2:
+        c.execute("UPDATE buttons SET menu2 = ? WHERE rowid=1", (str(buttons),))
+    conn.commit()
+    conn.close()
+
+
+def take_buttons(column):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS buttons (menu1 TEXT, menu2 TEXT)''')
+    if column == 1:
+        c.execute("SELECT menu1 FROM buttons WHERE rowid=1")
+    elif column == 2:
+        c.execute("SELECT menu2 FROM buttons WHERE rowid=1")
+    else:
+        return
+    data = c.fetchone()
+    conn.close()
+    if data is None or data[0] == '':
+        return None
+    else:
+        return eval(data[0])
 
 
 def create_element(item, group_addr):
@@ -233,14 +307,14 @@ def take_position(user_id):
 def update_last_message_id(new_id, user_id):
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
     try:
         c.execute("SELECT * FROM messages WHERE userid = ?", (user_id,))
         row = c.fetchone()
         if row is None:
-            c.execute("INSERT INTO messages (userid, LastMessageId) VALUES (?, ?)", (user_id, new_id))
+            c.execute("INSERT INTO messages (userid, LastMessageId) VALUES (?, ?)", (user_id, str(new_id)))
         else:
-            c.execute("UPDATE messages SET LastMessageId = ? WHERE userid = ?", (new_id, user_id))
+            c.execute("UPDATE messages SET LastMessageId = ? WHERE userid = ?", (str(new_id), user_id))
         conn.commit()
     finally:
         conn.close()
@@ -250,14 +324,14 @@ def update_last_message_id(new_id, user_id):
 def take_last_message_id(user_id):
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId INTEGER)''')
+    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
     try:
         c.execute("SELECT LastMessageId FROM messages WHERE userid = ?", (user_id,))
         row = c.fetchone()
         if row is None:
             return None
         else:
-            return row[0]
+            return eval(row[0])
     finally:
         conn.close()
 
@@ -285,8 +359,9 @@ def read_admin_mode():
 
 
 def send_message(event, pos, kboard):  # only for message_event
+    new_last_message_ids = []
     message_id = take_last_message_id(event.obj.user_id)
-    if message_id:
+    if message_id is not None:
         message = vk1.messages.getById(message_ids=message_id)
         timestamp = message['items'][0]['date']
         now = time.time()
@@ -295,14 +370,22 @@ def send_message(event, pos, kboard):  # only for message_event
         if time_diff < 24 * 60 * 60:
             vk1.messages.delete(message_ids=message_id, delete_for_all=1)
 
-    new_last_message_id = vk1.messages.send(
-        user_id=event.obj.user_id,
-        random_id=get_random_id(),
-        peer_id=event.obj.peer_id,
-        message=MESSAGES[pos],
-        keyboard=json.dumps(kboard[pos])
-    )
-    update_last_message_id(new_last_message_id, event.obj.user_id)
+    kboard_send = template_kboard.copy()
+    for i in range(0, len(kboard[pos]['buttons']), 6):
+        kboard_send['buttons'] = []
+        for j in range(i, i+6, 1):
+            if j < len(kboard[pos]['buttons']):
+                kboard_send['buttons'].append(kboard[pos]['buttons'][j])
+        new_last_message_id = vk1.messages.send(
+            user_id=event.obj.user_id,
+            random_id=get_random_id(),
+            peer_id=event.obj.peer_id,
+            message=MESSAGES[pos],
+            keyboard=json.dumps(kboard_send)
+        )
+        new_last_message_ids.append(new_last_message_id)
+
+    update_last_message_id(new_last_message_ids, event.obj.user_id)
     vk1.messages.sendMessageEventAnswer(
         event_id=event.obj.event_id,
         user_id=event.obj.user_id,
@@ -310,17 +393,34 @@ def send_message(event, pos, kboard):  # only for message_event
     )
 
 
-def save_keyboard(n, data):
-    with open(f'keyboard_{n}.json', 'w', encoding='UTF-8') as f:
-        json.dump(data, f)
+def send_message_new(event, pos, kboard):  # only for message_new
+    new_last_message_ids = []
+    message_id = take_last_message_id(event.obj.message["from_id"])
+    if message_id is not None:
+        message = vk1.messages.getById(message_ids=message_id)
+        timestamp = message['items'][0]['date']
+        now = time.time()
+        time_diff = now - timestamp
 
+        if time_diff < 24 * 60 * 60:
+            vk1.messages.delete(message_ids=message_id, delete_for_all=1)
 
-def load_keyboard(n):
-    try:
-        with open(f'keyboard_{n}.json', 'r', encoding='UTF-8') as f:
-            return json.load(f)
-    except FileNotFoundError:
-        return None
+    kboard_send = template_kboard.copy()
+    for i in range(0, len(kboard[pos]['buttons']), 6):
+        kboard_send['buttons'] = []
+        for j in range(i, i + 6, 1):
+            if j < len(kboard[pos]['buttons']):
+                kboard_send['buttons'].append(kboard[pos]['buttons'][j])
+        new_last_message_id = vk1.messages.send(
+            user_id=event.obj.message["from_id"],
+            random_id=get_random_id(),
+            peer_id=event.obj.message["peer_id"],
+            message=MESSAGES[pos],
+            keyboard=json.dumps(kboard_send)
+        )
+        new_last_message_ids.append(new_last_message_id)
+
+    update_last_message_id(new_last_message_ids, event.obj.message["from_id"])
 
 
 # keep_alive() #для деплоя

@@ -10,10 +10,9 @@ ADMIN = '350929022'
 group_id = '-'+str(GROUPID)
 
 # списки
-CALLBACK_MODES = ("next", "back", "admin")
+CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt")
 MESSAGES = ("Режим общения", "Сорт чая", "Выберите чай", "Выбор сделан")
 ADMIN_MESSAGES = ("Можете поменять названия кнопок",)
-PAYLOAD_TEXT = ('txt', 'vc')
 keyboard_buttons = []
 
 json1 = [
@@ -22,7 +21,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Текстовые сообщения",
-                "payload": f'{{\"type\": \"next\", \"text\": "{PAYLOAD_TEXT[0]}"}}'
+                "payload": "{\"type\": \"next\", \"text\": \"txt\"}"
             },
             "color": "secondary"
         }
@@ -32,7 +31,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Голосовые сообщения",
-                "payload": f'{{\"type\": \"next\", \"text\": "{PAYLOAD_TEXT[1]}"}}'
+                "payload": "{\"type\": \"next\", \"text\": \"vc\"}"
             },
             "color": "secondary"
         }
@@ -58,16 +57,6 @@ json2 = [
             },
             "color": "primary"
         }
-    ],
-    [
-        {
-            "action": {
-                "type": "callback",
-                "label": "Дальше",
-                "payload": "{\"type\": \"next\"}"
-            },
-            "color": "secondary"
-        }
     ]
 ]
 
@@ -80,16 +69,6 @@ json3 = [
                 "payload": "{\"type\": \"back\"}"
             },
             "color": "primary"
-        }
-    ],
-    [
-        {
-            "action": {
-                "type": "callback",
-                "label": "Дальше",
-                "payload": "{\"type\": \"next\"}"
-            },
-            "color": "secondary"
         }
     ]
 ]
@@ -195,3 +174,24 @@ keyboard_buttons.append(json1.copy())
 keyboard_buttons.append(json2.copy())
 keyboard_buttons.append(json3.copy())
 keyboard_buttons.append(json4.copy())
+
+template_carousel = {
+    "type": "carousel",
+    "elements": []
+}
+
+template_kboard = {
+    "inline": True,
+    "buttons": []
+}
+
+cancel_butt = [
+    {
+        "action": {
+            "type": "callback",
+            "label": "Отмена",
+            "payload": "{\"type\": \"cancel\"}"
+        },
+        "color": "secondary"
+    }
+]
