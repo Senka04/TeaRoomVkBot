@@ -21,7 +21,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Текстовые сообщения",
-                "payload": "{\"type\": \"next\", \"text\": \"txt\"}"
+                "payload": "{\"type\": \"next\", \"but\": \"0\"}"
             },
             "color": "secondary"
         }
@@ -31,7 +31,7 @@ json1 = [
             "action": {
                 "type": "callback",
                 "label": "Голосовые сообщения",
-                "payload": "{\"type\": \"next\", \"text\": \"vc\"}"
+                "payload": "{\"type\": \"next\", \"but\": \"1\"}"
             },
             "color": "secondary"
         }
@@ -90,6 +90,32 @@ json_admin1_entrance = [
         {
             "action": {
                 "type": "callback",
+                "label": "Текстовые сообщения",
+                "payload": "{\"type\": \"next\", \"but\": \"0\"}"
+            },
+            "color": "secondary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Голосовые сообщения",
+                "payload": "{\"type\": \"next\", \"but\": \"1\"}"
+            },
+            "color": "secondary"
+        }
+    ], [
+        {
+            "action": {
+                "type": "open_link",
+                "label": "Создатель бота",
+                "link": "https://vk.com/az_projects",
+            }
+        }
+    ], [
+        {
+            "action": {
+                "type": "callback",
                 "label": "Админ",
                 "payload": "{\"type\": \"admin\"}"
             },
@@ -99,6 +125,15 @@ json_admin1_entrance = [
 ]
 json_admin1_exit = [
     [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Далее",
+                "payload": "{\"type\": \"next\", \"but\": \"0\"}"
+            },
+            "color": "secondary"
+        }
+    ], [
         {
             "action": {
                 "type": "callback",

@@ -3,7 +3,6 @@ import json
 import vk_api
 import sqlite3
 import time
-from transliterate import slugify
 from config import *
 from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -46,12 +45,11 @@ def main():
         carousel['elements'].append(element)
 
     # keyboard
-    create_keyboard()
-            
+    keyboard_base()
+
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
             if event.obj.message["text"] == "Начать":
-
                 # market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
                 # carousel = template.copy()
                 # carousel['elements'] = []
@@ -91,7 +89,12 @@ def main():
             message_id = message['items'][0]['id']
             if message_id in take_last_message_id(event.obj.user_id):
                 if event.obj.payload.get("type") == CALLBACK_MODES[0]:  # next
-                    pos = take_position(event.obj.user_id)
+                    pos = int(take_position(event.obj.user_id))
+                    update_prev_buttons(event.obj.user_id, pos+1, event.obj.payload.get("but"))
+                    prev_but2 = take_prev_buttons(event.obj.user_id, 2)
+                    keyboard_base()
+                    fill_keyboard(1)
+                    fill_keyboard(2, prev_but2)
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                         send_message(event=event, pos=pos+1, kboard=admin_kboards)
                     else:
@@ -111,9 +114,9 @@ def main():
                         state = not state
                         update_admin_mode(state)
                         if state:
-                            admin_kboards[0]['buttons'][3] = json_admin1_exit[0]
+                            keyboard_base()
                         else:
-                            admin_kboards[0]['buttons'][3] = json_admin1_entrance[0]
+                            keyboard_base()
                         send_message(event=event, pos=0, kboard=admin_kboards)
                     else:
                         send_message(event=event, pos=0, kboard=kboards)
@@ -128,19 +131,20 @@ def main():
                                 send_message(event=event_add, pos=pos, kboard=admin_kboards)
                                 break
                         elif event_add.type == VkBotEventType.MESSAGE_NEW:
-                            added_butt_label = str(event_add.obj.message["text"])
-                            added_butt_text = slugify(added_butt_label)
+                            keyboard = take_buttons(pos)
+                            label = event_add.obj.message["text"]
+                            b = len(keyboard)
+                            pb = take_prev_buttons(event.obj.user_id, pos-1)
                             new_butt = [
                                 {
                                     "action": {
                                         "type": "callback",
-                                        "label": f"{added_butt_label}",
-                                        "payload": f'{{\"type\": \"next\", \"text\": "{added_butt_text}"}}'
+                                        "label": f"{label}",
+                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\"}}'
                                     },
                                     "color": "secondary"
                                 }
                             ]
-                            keyboard = take_buttons(pos)
                             if keyboard is None:
                                 keyboard = []
                             if str(ADMIN) == str(event_add.obj.message["from_id"]) and read_admin_mode() is True:
@@ -162,14 +166,17 @@ def main():
                                 break
                             if event_del.obj.payload.get("type") == CALLBACK_MODES[0]:
                                 keyboard = take_buttons(pos)
-                                text1 = event_del.obj.payload.get("text")
+                                butt1 = event_del.obj.payload.get("but")
                                 for i in range(len(keyboard)):
                                     keyboard_copy = keyboard.copy()
-                                    text2 = eval(keyboard_copy[i][0]['action']['payload']).get("text")
-                                    if str(text1) == str(text2):
+                                    butt2 = eval(keyboard_copy[i][0]['action']['payload']).get("but")
+                                    if str(butt1) == str(butt2):
                                         del keyboard[i]
                                         update_buttons(pos, keyboard)
-                                        create_keyboard()
+                                        prev_but2 = take_prev_buttons(event.obj.user_id, 2)
+                                        keyboard_base()
+                                        fill_keyboard(1)
+                                        fill_keyboard(2, prev_but2)
                                         send_message(event=event_del, pos=pos, kboard=admin_kboards)
                                         break_flag = True
                                         break
@@ -177,7 +184,7 @@ def main():
                                     break
 
 
-def create_keyboard():
+def keyboard_base():
     global kboards, admin_kboards
     kboards = []
     admin_kboards = []
@@ -185,16 +192,19 @@ def create_keyboard():
         kboard1 = template_kboard.copy()
         kboard2 = template_kboard.copy()
         kboard1['buttons'] = keyboard_buttons[i].copy()
-        kboard2['buttons'] = keyboard_buttons[i].copy()
         kboards.append(kboard1)
-        admin_kboards.append(kboard2)
-
-    if read_admin_mode() is True:
-        for i in range(len(json_admin1_exit)):
-            admin_kboards[0]['buttons'].append(json_admin1_exit[i])
-    else:
-        for i in range(len(json_admin1_entrance)):
-            admin_kboards[0]['buttons'].append(json_admin1_entrance[i])
+        if i > 0:
+            kboard2['buttons'] = keyboard_buttons[i].copy()
+            admin_kboards.append(kboard2)
+        else:
+            kboard2['buttons'] = []
+            if read_admin_mode() is True:
+                for j in range(len(json_admin1_exit)):
+                    kboard2['buttons'].append(json_admin1_exit[j])
+            else:
+                for j in range(len(json_admin1_entrance)):
+                    kboard2['buttons'].append(json_admin1_entrance[j])
+            admin_kboards.append(kboard2)
 
     for i in range(len(json_admin2)):
         admin_kboards[1]['buttons'].append(json_admin2[i])
@@ -202,17 +212,14 @@ def create_keyboard():
     for i in range(len(json_admin3)):
         admin_kboards[3]['buttons'].append(json_admin3[i])
 
-    buttons = take_buttons(1)
-    if buttons is not None:
-        for i in range(len(buttons)):
-            kboards[1]['buttons'].append(buttons[i])
-            admin_kboards[1]['buttons'].append(buttons[i])
 
-    buttons = take_buttons(2)
-    if buttons is not None:
-        for i in range(len(buttons)):
-            kboards[2]['buttons'].append(buttons[i])
-            admin_kboards[2]['buttons'].append(buttons[i])
+def fill_keyboard(pos: int, prev_but=-1):
+    buttons_list = take_buttons(pos)
+    for n in range(len(buttons_list)):
+        prev_but_list = eval(buttons_list[n][0]['action']['payload']).get('prev_but')
+        if str(prev_but_list) == str(prev_but) or prev_but == -1:
+            admin_kboards[pos]['buttons'].append(buttons_list[n])
+            kboards[pos]['buttons'].append(buttons_list[n])
 
 
 def update_buttons(column, buttons):
@@ -223,7 +230,6 @@ def update_buttons(column, buttons):
     c.execute("SELECT COUNT(*) FROM buttons")
     row_count = c.fetchone()[0]
 
-    # Вставка новой строки, если таблица пуста
     if row_count == 0:
         c.execute("INSERT INTO buttons (menu1, menu2) VALUES ('', '')")
 
@@ -248,7 +254,7 @@ def take_buttons(column):
     data = c.fetchone()
     conn.close()
     if data is None or data[0] == '':
-        return None
+        return []
     else:
         return eval(data[0])
 
@@ -290,6 +296,53 @@ def create_element(item, group_addr):
         }]
     }
     return element
+
+
+def update_prev_buttons(user_id, menu, but):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS prev_buttons (userid INTEGER PRIMARY KEY, for_m1 INTEGER, for_m2 INTEGER, for_m3 INTEGER)''')
+    try:
+        c.execute("SELECT * FROM prev_buttons WHERE userid = ?", (user_id,))
+        row = c.fetchone()
+        if row is None:
+            if menu == 1:
+                c.execute("INSERT INTO prev_buttons (userid, for_m1) VALUES (?, ?)", (user_id, but,))
+            elif menu == 2:
+                c.execute("INSERT INTO prev_buttons (userid, for_m2) VALUES (?, ?)", (user_id, but,))
+            elif menu == 3:
+                c.execute("INSERT INTO prev_buttons (userid, for_m3) VALUES (?, ?)", (user_id, but,))
+        else:
+            if menu == 1:
+                c.execute("UPDATE prev_buttons SET for_m1 = ? WHERE userid = ?", (but, user_id))
+            elif menu == 2:
+                c.execute("UPDATE prev_buttons SET for_m2 = ? WHERE userid = ?", (but, user_id))
+            elif menu == 3:
+                c.execute("UPDATE prev_buttons SET for_m3 = ? WHERE userid = ?", (but, user_id))
+        conn.commit()
+    finally:
+        conn.close()
+    return
+
+
+def take_prev_buttons(user_id, menu):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS prev_buttons (userid INTEGER PRIMARY KEY, for_m1 INTEGER, for_m2 INTEGER,  for_m3 INTEGER)''')
+    try:
+        if menu == 1:
+            c.execute("SELECT for_m1 FROM prev_buttons WHERE userid = ?", (user_id,))
+        elif menu == 2:
+            c.execute("SELECT for_m2 FROM prev_buttons WHERE userid = ?", (user_id,))
+        elif menu == 3:
+            c.execute("SELECT for_m3 FROM prev_buttons WHERE userid = ?", (user_id,))
+        row = c.fetchone()
+        if row is None:
+            return None
+        else:
+            return row[0]
+    finally:
+        conn.close()
 
 
 def update_position(new_pos, user_id):
