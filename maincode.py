@@ -50,8 +50,9 @@ def main():
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
             if event.obj.message["text"] == "Начать":
+
                 # market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
-                # carousel = template.copy()
+                # carousel = template_carousel.copy()
                 # carousel['elements'] = []
                 #
                 # group_addr = response[0]['screen_name']
@@ -92,9 +93,19 @@ def main():
                     pos = int(take_position(event.obj.user_id))
                     update_prev_buttons(event.obj.user_id, pos+1, event.obj.payload.get("but"))
                     prev_but2 = take_prev_buttons(event.obj.user_id, 2)
+                    prev_but3 = take_prev_buttons(event.obj.user_id, 3)
                     keyboard_base()
-                    fill_keyboard(1)
-                    fill_keyboard(2, prev_but2)
+                    fill_keyboard(event.obj.user_id, 1)
+                    fill_keyboard(event.obj.user_id, 2, prev_but2)
+                    if pos == 2:
+                        att = take_text_or_voice(prev_but3, True, False)
+                        if att[0] is not None:
+                            vk1.messages.send(
+                                user_id=event.obj.user_id,
+                                random_id=get_random_id(),
+                                peer_id=event.obj.peer_id,
+                                attachment=att
+                            )
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                         send_message(event=event, pos=pos+1, kboard=admin_kboards)
                     else:
@@ -134,7 +145,7 @@ def main():
                             keyboard = take_buttons(pos)
                             label = event_add.obj.message["text"]
                             b = len(keyboard)
-                            pb = take_prev_buttons(event.obj.user_id, pos-1)
+                            pb = take_prev_buttons(event.obj.user_id, pos)
                             new_butt = [
                                 {
                                     "action": {
@@ -175,13 +186,116 @@ def main():
                                         update_buttons(pos, keyboard)
                                         prev_but2 = take_prev_buttons(event.obj.user_id, 2)
                                         keyboard_base()
-                                        fill_keyboard(1)
-                                        fill_keyboard(2, prev_but2)
+                                        fill_keyboard(event.obj.user_id, 1)
+                                        fill_keyboard(event.obj.user_id, 2, prev_but2)
                                         send_message(event=event_del, pos=pos, kboard=admin_kboards)
                                         break_flag = True
                                         break
                                 if break_flag is True:
                                     break
+
+                elif event.obj.payload.get("type") == CALLBACK_MODES[7]:  # add_voice
+                    pos = int(take_position(event.obj.user_id))
+                    break_flag = False
+                    for event_add_voice in longpoll.listen():
+                        if event_add_voice.type == VkBotEventType.MESSAGE_NEW:
+                            message = vk1.messages.getById(message_ids=event_add_voice.obj.message["id"])['items'][0]
+                            if message['attachments']:
+                                for attachment in message['attachments']:
+                                    if attachment['type'] == 'audio_message':
+                                        owner = attachment['audio_message']['owner_id']
+                                        audio_id = attachment['audio_message']['id']
+                                        access = attachment['audio_message']['access_key']
+                                        att = f"doc{owner}_{audio_id}_{access}"
+                                        change_voice("1")
+                                        add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        vk1.messages.send(
+                                            user_id=event_add_voice.obj.message["from_id"],
+                                            random_id=get_random_id(),
+                                            peer_id=event_add_voice.obj.message["peer_id"],
+                                            message="Добавлено"
+                                        )
+                                        send_message_new(event=event_add_voice, pos=pos, kboard=admin_kboards)
+                                        break_flag = True
+                                        break
+
+                                if break_flag is True:
+                                    break
+
+                            if message['fwd_messages']:
+                                for attachment in message['fwd_messages'][0]['attachments']:
+                                    if attachment['type'] == 'audio_message':
+                                        owner = attachment['audio_message']['owner_id']
+                                        audio_id = attachment['audio_message']['id']
+                                        access = attachment['audio_message']['access_key']
+                                        att = f"doc{owner}_{audio_id}_{access}"
+                                        change_voice("1")
+                                        add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        vk1.messages.send(
+                                            user_id=event_add_voice.obj.message["from_id"],
+                                            random_id=get_random_id(),
+                                            peer_id=event_add_voice.obj.message["peer_id"],
+                                            message="Добавлено"
+                                        )
+                                        break_flag = True
+                                        break
+
+                                if break_flag is True:
+                                    break
+
+
+def add_text_or_voice(button_number, voice_message=None, text_message=None):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS text_or_voice
+                     (button_number INTEGER PRIMARY KEY,
+                      voice_message TEXT,
+                      text_message TEXT)''')
+    c.execute("SELECT * FROM text_or_voice WHERE button_number=?", (button_number,))
+    data = c.fetchone()
+    if data is None:
+        c.execute("INSERT INTO text_or_voice VALUES (?, ?, ?)", (button_number, voice_message, text_message))
+    else:
+        if voice_message is not None:
+            c.execute("UPDATE text_or_voice SET voice_message=? WHERE button_number=?", (voice_message, button_number))
+        if text_message is not None:
+            c.execute("UPDATE text_or_voice SET text_message=? WHERE button_number=?", (text_message, button_number))
+    conn.commit()
+    conn.close()
+
+
+def take_text_or_voice(button_number, read_voice=True, read_text=True):
+    conn = sqlite3.connect('menu_positions.db')
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS text_or_voice
+                     (button_number INTEGER PRIMARY KEY,
+                      voice_message TEXT,
+                      text_message TEXT)''')
+    c.execute("SELECT * FROM text_or_voice WHERE button_number=?", (button_number,))
+    data = c.fetchone()
+    conn.close()
+    if data is None:
+        return None, None
+    else:
+        voice_message = data[1] if read_voice else None
+        text_message = data[2] if read_text else None
+        return voice_message, text_message
+
+
+def change_voice(n: str):
+    if n == "0" or n == "1":
+        pb1 = take_prev_buttons(ADMIN, 2)
+        pb2 = take_prev_buttons(ADMIN, 3)
+        butts1 = take_buttons(1)
+        butts2 = take_buttons(2)
+        p1 = eval(butts1[pb1][0]['action']['payload'])
+        p2 = eval(butts2[pb2][0]['action']['payload'])
+        p1['voice'] = n
+        p2['voice'] = n
+        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
+        butts2[pb2][0]['action']['payload'] = json.dumps(p2)
+        update_buttons(1, butts1)
+        update_buttons(2, butts2)
 
 
 def keyboard_base():
@@ -213,13 +327,28 @@ def keyboard_base():
         admin_kboards[3]['buttons'].append(json_admin3[i])
 
 
-def fill_keyboard(pos: int, prev_but=-1):
-    buttons_list = take_buttons(pos)
-    for n in range(len(buttons_list)):
-        prev_but_list = eval(buttons_list[n][0]['action']['payload']).get('prev_but')
-        if str(prev_but_list) == str(prev_but) or prev_but == -1:
-            admin_kboards[pos]['buttons'].append(buttons_list[n])
-            kboards[pos]['buttons'].append(buttons_list[n])
+def fill_keyboard(user_id, pos: int, prev_but=-1):
+    if pos == 1 or pos == 2:
+        buttons_list = take_buttons(pos)
+        for n in range(len(buttons_list)):
+            prev_but_list = eval(buttons_list[n][0]['action']['payload']).get('prev_but')
+            voice = eval(buttons_list[n][0]['action']['payload']).get('voice')
+            text = eval(buttons_list[n][0]['action']['payload']).get('text')
+            pb = take_prev_buttons(user_id, 1)
+            if str(prev_but_list) == str(prev_but) or prev_but == -1:
+                if read_admin_mode() is not True:
+                    if int(pb):
+                        if int(voice):
+                            admin_kboards[pos]['buttons'].append(buttons_list[n])
+                            kboards[pos]['buttons'].append(buttons_list[n])
+                    else:
+                        if int(text):
+                            admin_kboards[pos]['buttons'].append(buttons_list[n])
+                            kboards[pos]['buttons'].append(buttons_list[n])
+                else:
+                    admin_kboards[pos]['buttons'].append(buttons_list[n])
+                    kboards[pos]['buttons'].append(buttons_list[n])
+
 
 
 def update_buttons(column, buttons):

@@ -10,7 +10,7 @@ ADMIN = '350929022'
 group_id = '-'+str(GROUPID)
 
 # списки
-CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt")
+CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt", "add_text", "del_text", "add_voice", "del_voice")
 MESSAGES = ("Режим общения", "Сорт чая", "Выберите чай", "Выбор сделан")
 ADMIN_MESSAGES = ("Можете поменять названия кнопок",)
 keyboard_buttons = []
