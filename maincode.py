@@ -74,7 +74,6 @@ def main():
 
                 update_position(0, event.obj.message["from_id"])
             else:
-                print(event.obj.message)
                 vk1.messages.send(
                     user_id=event.obj.message["from_id"],
                     random_id=get_random_id(),
@@ -99,22 +98,39 @@ def main():
                     fill_keyboard(event.obj.user_id, 1)
                     fill_keyboard(event.obj.user_id, 2, prev_but2)
                     if pos == 2:
-                        att = take_text_or_voice(prev_but3, True, False)
-                        txt = take_text_or_voice(prev_but3, False, True)
-                        if att[0] is not None and int(take_prev_buttons(event.obj.user_id, 1)) != 0:
-                            vk1.messages.send(
-                                user_id=event.obj.user_id,
-                                random_id=get_random_id(),
-                                peer_id=event.obj.peer_id,
-                                attachment=att[0]
-                            )
-                        if txt[1] is not None and int(take_prev_buttons(event.obj.user_id, 1)) != 1:
-                            vk1.messages.send(
-                                user_id=event.obj.user_id,
-                                random_id=get_random_id(),
-                                peer_id=event.obj.peer_id,
-                                message=txt[1]
-                            )
+                        att = take_text_or_voice(prev_but3)
+                        if att[0] is not None:
+                            if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
+                                vk1.messages.send(
+                                    user_id=event.obj.user_id,
+                                    random_id=get_random_id(),
+                                    peer_id=event.obj.peer_id,
+                                    attachment=att[0]
+                                )
+                            else:
+                                if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
+                                    vk1.messages.send(
+                                        user_id=event.obj.user_id,
+                                        random_id=get_random_id(),
+                                        peer_id=event.obj.peer_id,
+                                        attachment=att[0]
+                                    )
+                        if att[1] is not None:
+                            if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
+                                vk1.messages.send(
+                                    user_id=event.obj.user_id,
+                                    random_id=get_random_id(),
+                                    peer_id=event.obj.peer_id,
+                                    message=att[1]
+                                )
+                            else:
+                                if int(take_prev_buttons(event.obj.user_id, 1)) == 0:
+                                    vk1.messages.send(
+                                        user_id=event.obj.user_id,
+                                        random_id=get_random_id(),
+                                        peer_id=event.obj.peer_id,
+                                        message=att[1]
+                                    )
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                         send_message(event=event, pos=pos+1, kboard=admin_kboards)
                     else:
@@ -203,6 +219,50 @@ def main():
                                 if break_flag is True:
                                     break
 
+                elif event.obj.payload.get("type") == CALLBACK_MODES[5]:  # add_text
+                    pos = int(take_position(event.obj.user_id))
+                    for event_add_text in longpoll.listen():
+                        if event_add_text.type == VkBotEventType.MESSAGE_NEW:
+                            message = vk1.messages.getById(message_ids=event_add_text.obj.message["id"])['items'][0]
+                            if message['text'] != '':
+                                text = message['text']
+                                change_text("1")
+                                update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
+                                vk1.messages.send(
+                                    user_id=event_add_text.obj.message["from_id"],
+                                    random_id=get_random_id(),
+                                    peer_id=event_add_text.obj.message["peer_id"],
+                                    message="Добавлено"
+                                )
+                                send_message_new(event=event_add_text, pos=pos, kboard=admin_kboards)
+                                break
+
+                            if message['fwd_messages']:
+                                if message['fwd_messages'][0]['text'] != '':
+                                    text = message['fwd_messages'][0]['text']
+                                    change_text("1")
+                                    update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
+                                    vk1.messages.send(
+                                        user_id=event_add_text.obj.message["from_id"],
+                                        random_id=get_random_id(),
+                                        peer_id=event_add_text.obj.message["peer_id"],
+                                        message="Добавлено"
+                                    )
+                                    send_message_new(event=event_add_text, pos=pos, kboard=admin_kboards)
+                                    break
+
+                elif event.obj.payload.get("type") == CALLBACK_MODES[6]:  # del_text
+                    pos = int(take_position(event.obj.user_id))
+                    change_text("0")
+                    update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message='')
+                    vk1.messages.send(
+                        user_id=event.obj.user_id,
+                        random_id=get_random_id(),
+                        peer_id=event.obj.peer_id,
+                        message="Текстовое сообщение удалено"
+                    )
+                    send_message(event=event, pos=pos, kboard=admin_kboards)
+
                 elif event.obj.payload.get("type") == CALLBACK_MODES[7]:  # add_voice
                     pos = int(take_position(event.obj.user_id))
                     break_flag = False
@@ -217,7 +277,7 @@ def main():
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
                                         change_voice("1")
-                                        add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
                                             random_id=get_random_id(),
@@ -239,7 +299,7 @@ def main():
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
                                         change_voice("1")
-                                        add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
                                             random_id=get_random_id(),
@@ -253,40 +313,20 @@ def main():
                                 if break_flag is True:
                                     break
 
-                elif event.obj.payload.get("type") == CALLBACK_MODES[5]:  # add_text
+                elif event.obj.payload.get("type") == CALLBACK_MODES[8]:  # del_voice
                     pos = int(take_position(event.obj.user_id))
-                    for event_add_text in longpoll.listen():
-                        if event_add_text.type == VkBotEventType.MESSAGE_NEW:
-                            message = vk1.messages.getById(message_ids=event_add_text.obj.message["id"])['items'][0]
-                            if message['text'] != '':
-                                text = message['text']
-                                change_text("1")
-                                add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
-                                vk1.messages.send(
-                                    user_id=event_add_text.obj.message["from_id"],
-                                    random_id=get_random_id(),
-                                    peer_id=event_add_text.obj.message["peer_id"],
-                                    message="Добавлено"
-                                )
-                                send_message_new(event=event_add_text, pos=pos, kboard=admin_kboards)
-                                break
-
-                            if message['fwd_messages']:
-                                if message['fwd_messages'][0]['text'] != '':
-                                    text = message['fwd_messages'][0]['text']
-                                    change_text("1")
-                                    add_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
-                                    vk1.messages.send(
-                                        user_id=event_add_text.obj.message["from_id"],
-                                        random_id=get_random_id(),
-                                        peer_id=event_add_text.obj.message["peer_id"],
-                                        message="Добавлено"
-                                    )
-                                    send_message_new(event=event_add_text, pos=pos, kboard=admin_kboards)
-                                    break
+                    change_voice("0")
+                    update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message='')
+                    vk1.messages.send(
+                        user_id=event.obj.user_id,
+                        random_id=get_random_id(),
+                        peer_id=event.obj.peer_id,
+                        message="Голосовое сообщение удалено"
+                    )
+                    send_message(event=event, pos=pos, kboard=admin_kboards)
 
 
-def add_text_or_voice(button_number, voice_message=None, text_message=None):
+def update_text_or_voice(button_number, voice_message=None, text_message=None):
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS text_or_voice
@@ -306,7 +346,7 @@ def add_text_or_voice(button_number, voice_message=None, text_message=None):
     conn.close()
 
 
-def take_text_or_voice(button_number, read_voice=True, read_text=True):
+def take_text_or_voice(button_number):
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
     c.execute('''CREATE TABLE IF NOT EXISTS text_or_voice
@@ -319,8 +359,8 @@ def take_text_or_voice(button_number, read_voice=True, read_text=True):
     if data is None:
         return None, None
     else:
-        voice_message = data[1] if read_voice else None
-        text_message = data[2] if read_text else None
+        voice_message = data[1] if data[1] != '' else None
+        text_message = data[2] if data[2] != '' else None
         return voice_message, text_message
 
 
@@ -406,7 +446,6 @@ def fill_keyboard(user_id, pos: int, prev_but=-1):
                 else:
                     admin_kboards[pos]['buttons'].append(buttons_list[n])
                     kboards[pos]['buttons'].append(buttons_list[n])
-
 
 
 def update_buttons(column, buttons):
