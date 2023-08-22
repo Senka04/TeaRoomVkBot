@@ -201,21 +201,50 @@ def main():
                                 send_message(event=event_del, pos=pos, kboard=admin_kboards)
                                 break
                             if event_del.obj.payload.get("type") == CALLBACK_MODES[0]:
-                                keyboard = take_buttons(pos)
+                                keyboard1 = take_buttons(1)
+                                keyboard2 = take_buttons(2)
                                 butt1 = event_del.obj.payload.get("but")
-                                for i in range(len(keyboard)):
-                                    keyboard_copy = keyboard.copy()
-                                    butt2 = eval(keyboard_copy[i][0]['action']['payload']).get("but")
-                                    if str(butt1) == str(butt2):
-                                        del keyboard[i]
-                                        update_buttons(pos, keyboard)
-                                        prev_but2 = take_prev_buttons(event.obj.user_id, 2)
-                                        keyboard_base()
-                                        fill_keyboard(event.obj.user_id, 1)
-                                        fill_keyboard(event.obj.user_id, 2, prev_but2)
-                                        send_message(event=event_del, pos=pos, kboard=admin_kboards)
-                                        break_flag = True
-                                        break
+                                if pos == 1:
+                                    copy = keyboard1.copy()
+                                    for i in range(len(copy)-1, -1, -1):
+                                        butt2 = eval(copy[i][0]['action']['payload']).get("but")
+                                        if str(butt1) == str(butt2):
+                                            del keyboard1[i]
+                                            break_flag = True
+                                            break
+
+                                    copy = keyboard2.copy()
+                                    for i in range(len(copy)-1, -1, -1):
+                                        if int(eval(copy[i][0]['action']['payload']).get("prev_but")) == int(butt1):
+                                            btn = int(eval(copy[i][0]['action']['payload']).get("but"))
+                                            break_flag = True
+                                            if take_text_or_voice(btn)[0] is not None or take_text_or_voice(btn)[1] is not None:
+                                                update_text_or_voice(button_number=btn, text_message='', voice_message='')
+                                            del keyboard2[i]
+
+                                if pos == 2:
+                                    copy = keyboard2.copy()
+                                    for i in range(len(copy)-1, -1, -1):
+                                        butt2 = eval(copy[i][0]['action']['payload']).get("but")
+                                        pb = int(eval(copy[i][0]['action']['payload']).get("prev_but"))
+                                        if str(butt1) == str(butt2):
+                                            del keyboard2[i]
+                                            if take_text_or_voice(butt2)[0] is not None or take_text_or_voice(butt2)[1] is not None:
+                                                update_text_or_voice(button_number=butt2, text_message='', voice_message='')
+                                                p1 = eval(keyboard1[pb][0]['action']['payload'])
+                                                p1['voice'] = "0"
+                                                p1['text'] = "0"
+                                                keyboard1[pb][0]['action']['payload'] = json.dumps(p1)
+                                            break_flag = True
+                                            break
+
+                                update_buttons(1, keyboard1)
+                                update_buttons(2, keyboard2)
+                                prev_but2 = take_prev_buttons(event.obj.user_id, 2)
+                                keyboard_base()
+                                fill_keyboard(event.obj.user_id, 1)
+                                fill_keyboard(event.obj.user_id, 2, prev_but2)
+                                send_message(event=event_del, pos=pos, kboard=admin_kboards)
                                 if break_flag is True:
                                     break
 
@@ -226,8 +255,8 @@ def main():
                             message = vk1.messages.getById(message_ids=event_add_text.obj.message["id"])['items'][0]
                             if message['text'] != '':
                                 text = message['text']
-                                change_text("1")
                                 update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
+                                change_text("1")
                                 vk1.messages.send(
                                     user_id=event_add_text.obj.message["from_id"],
                                     random_id=get_random_id(),
@@ -240,8 +269,8 @@ def main():
                             if message['fwd_messages']:
                                 if message['fwd_messages'][0]['text'] != '':
                                     text = message['fwd_messages'][0]['text']
-                                    change_text("1")
                                     update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message=text)
+                                    change_text("1")
                                     vk1.messages.send(
                                         user_id=event_add_text.obj.message["from_id"],
                                         random_id=get_random_id(),
@@ -253,8 +282,8 @@ def main():
 
                 elif event.obj.payload.get("type") == CALLBACK_MODES[6]:  # del_text
                     pos = int(take_position(event.obj.user_id))
-                    change_text("0")
                     update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message='')
+                    change_text("0")
                     vk1.messages.send(
                         user_id=event.obj.user_id,
                         random_id=get_random_id(),
@@ -276,8 +305,8 @@ def main():
                                         audio_id = attachment['audio_message']['id']
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
-                                        change_voice("1")
                                         update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        change_voice("1")
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
                                             random_id=get_random_id(),
@@ -298,8 +327,8 @@ def main():
                                         audio_id = attachment['audio_message']['id']
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
-                                        change_voice("1")
                                         update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        change_voice("1")
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
                                             random_id=get_random_id(),
@@ -315,8 +344,8 @@ def main():
 
                 elif event.obj.payload.get("type") == CALLBACK_MODES[8]:  # del_voice
                     pos = int(take_position(event.obj.user_id))
-                    change_voice("0")
                     update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message='')
+                    change_voice("0")
                     vk1.messages.send(
                         user_id=event.obj.user_id,
                         random_id=get_random_id(),
@@ -366,34 +395,46 @@ def take_text_or_voice(button_number):
 
 def change_voice(n: str):
     if n == "0" or n == "1":
+        flag = False
         pb1 = take_prev_buttons(ADMIN, 2)
         pb2 = take_prev_buttons(ADMIN, 3)
         butts1 = take_buttons(1)
         butts2 = take_buttons(2)
         p1 = eval(butts1[pb1][0]['action']['payload'])
         p2 = eval(butts2[pb2][0]['action']['payload'])
-        p1['voice'] = n
+        for i in range(len(butts2)):
+            if int(eval(butts2[i][0]['action']['payload']).get("voice")):
+                flag = True
+
         p2['voice'] = n
-        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
         butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-        update_buttons(1, butts1)
         update_buttons(2, butts2)
+
+        p1['voice'] = "1" if flag is True else "0"
+        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
+        update_buttons(1, butts1)
 
 
 def change_text(n: str):
     if n == "0" or n == "1":
+        flag = False
         pb1 = take_prev_buttons(ADMIN, 2)
         pb2 = take_prev_buttons(ADMIN, 3)
         butts1 = take_buttons(1)
         butts2 = take_buttons(2)
         p1 = eval(butts1[pb1][0]['action']['payload'])
         p2 = eval(butts2[pb2][0]['action']['payload'])
-        p1['text'] = n
+        for i in range(len(butts2)):
+            if int(eval(butts2[i][0]['action']['payload']).get("text")):
+                flag = True
+
         p2['text'] = n
-        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
         butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-        update_buttons(1, butts1)
         update_buttons(2, butts2)
+
+        p1['text'] = "1" if flag is True else "0"
+        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
+        update_buttons(1, butts1)
 
 
 def keyboard_base():
