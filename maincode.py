@@ -23,12 +23,9 @@ carousel = ''
 kboards = []
 admin_kboards = []
 
-added_butt_label = ""
-added_butt_text = ""
-
 
 def main():
-    global carousel, kboards, admin_kboards, added_butt_label, added_butt_text
+    global carousel, kboards, admin_kboards
 
     state = read_admin_mode()
     market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
@@ -169,8 +166,11 @@ def main():
                         elif event_add.type == VkBotEventType.MESSAGE_NEW:
                             keyboard = take_buttons(pos)
                             label = event_add.obj.message["text"]
-                            b = len(keyboard)
                             pb = take_prev_buttons(event.obj.user_id, pos)
+                            butts = []
+                            for n in range(len(keyboard)):
+                                butts.append(int(eval(keyboard[n][0]['action']['payload']).get("but")))
+                            b = add_missing_numbers(butts)
                             new_butt = [
                                 {
                                     "action": {
@@ -218,8 +218,11 @@ def main():
                                         if int(eval(copy[i][0]['action']['payload']).get("prev_but")) == int(butt1):
                                             btn = int(eval(copy[i][0]['action']['payload']).get("but"))
                                             break_flag = True
-                                            if take_text_or_voice(btn)[0] is not None or take_text_or_voice(btn)[1] is not None:
-                                                update_text_or_voice(button_number=btn, text_message='', voice_message='')
+                                            vc = take_text_or_voice(btn)[0]
+                                            txt = take_text_or_voice(btn)[1]
+                                            if vc is not None or txt is not None:
+                                                update_text_or_voice(button_number=btn, text_message='',
+                                                                     voice_message='')
                                             del keyboard2[i]
 
                                 if pos == 2:
@@ -229,8 +232,11 @@ def main():
                                         pb = int(eval(copy[i][0]['action']['payload']).get("prev_but"))
                                         if str(butt1) == str(butt2):
                                             del keyboard2[i]
-                                            if take_text_or_voice(butt2)[0] is not None or take_text_or_voice(butt2)[1] is not None:
-                                                update_text_or_voice(button_number=butt2, text_message='', voice_message='')
+                                            vc = take_text_or_voice(butt2)[0]
+                                            txt = take_text_or_voice(butt2)[1]
+                                            if vc is not None or txt is not None:
+                                                update_text_or_voice(button_number=butt2, text_message='',
+                                                                     voice_message='')
                                                 p1 = eval(keyboard1[pb][0]['action']['payload'])
                                                 p1['voice'] = "0"
                                                 p1['text'] = "0"
@@ -305,7 +311,8 @@ def main():
                                         audio_id = attachment['audio_message']['id']
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
-                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3),
+                                                             voice_message=att)
                                         change_voice("1")
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
@@ -327,7 +334,8 @@ def main():
                                         audio_id = attachment['audio_message']['id']
                                         access = attachment['audio_message']['access_key']
                                         att = f"doc{owner}_{audio_id}_{access}"
-                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message=att)
+                                        update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3),
+                                                             voice_message=att)
                                         change_voice("1")
                                         vk1.messages.send(
                                             user_id=event_add_voice.obj.message["from_id"],
@@ -353,6 +361,13 @@ def main():
                         message="Голосовое сообщение удалено"
                     )
                     send_message(event=event, pos=pos, kboard=admin_kboards)
+
+
+def add_missing_numbers(numbers):
+    i = 0
+    while i in numbers:
+        i += 1
+    return i
 
 
 def update_text_or_voice(button_number, voice_message=None, text_message=None):
@@ -402,13 +417,14 @@ def change_voice(n: str):
         butts2 = take_buttons(2)
         p1 = eval(butts1[pb1][0]['action']['payload'])
         p2 = eval(butts2[pb2][0]['action']['payload'])
-        for i in range(len(butts2)):
-            if int(eval(butts2[i][0]['action']['payload']).get("voice")):
-                flag = True
-
         p2['voice'] = n
         butts2[pb2][0]['action']['payload'] = json.dumps(p2)
         update_buttons(2, butts2)
+
+        for i in range(len(butts2)):
+            if int(eval(butts2[i][0]['action']['payload']).get("voice")):
+                if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
+                    flag = True
 
         p1['voice'] = "1" if flag is True else "0"
         butts1[pb1][0]['action']['payload'] = json.dumps(p1)
@@ -424,13 +440,14 @@ def change_text(n: str):
         butts2 = take_buttons(2)
         p1 = eval(butts1[pb1][0]['action']['payload'])
         p2 = eval(butts2[pb2][0]['action']['payload'])
-        for i in range(len(butts2)):
-            if int(eval(butts2[i][0]['action']['payload']).get("text")):
-                flag = True
-
         p2['text'] = n
         butts2[pb2][0]['action']['payload'] = json.dumps(p2)
         update_buttons(2, butts2)
+
+        for i in range(len(butts2)):
+            if int(eval(butts2[i][0]['action']['payload']).get("text")):
+                if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
+                    flag = True
 
         p1['text'] = "1" if flag is True else "0"
         butts1[pb1][0]['action']['payload'] = json.dumps(p1)
@@ -740,7 +757,7 @@ def send_message_cancel(event):  # only for message_event
         user_id=event.obj.user_id,
         random_id=get_random_id(),
         peer_id=event.obj.peer_id,
-        message="Напишите название добавляемой кнопки либо отмените действие",
+        message="Нажмите на удаляемую кнопку, либо отмените действие",
         keyboard=json.dumps(cancel)
     )
     new_last_message_ids.append(new_last_message_id)
