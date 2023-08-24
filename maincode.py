@@ -28,18 +28,6 @@ def main():
     global carousel, kboards, admin_kboards
 
     state = read_admin_mode()
-    # market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
-    response = vk1.groups.getById(group_id=GROUPID)
-
-    # carousel
-    # carousel = template_carousel.copy()
-    # carousel['elements'] = []
-
-    group_addr = response[0]['screen_name']
-    # items = market_respose['items']
-    # for item in items:
-    #     element = create_element(item, group_addr)
-    #     carousel['elements'].append(element)
 
     # keyboard
     keyboard_base()
@@ -48,22 +36,6 @@ def main():
         if event.type == VkBotEventType.MESSAGE_NEW:
             if event.obj.message["text"] == "Начать":
 
-                # market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
-                # carousel = template_carousel.copy()
-                # carousel['elements'] = []
-                #
-                # group_addr = response[0]['screen_name']
-                # items = market_respose['items']
-                # for item in items:
-                #     element = create_element(item, group_addr)
-                #     carousel['elements'].append(element)
-                # vk1.messages.send(
-                #     user_id=event.obj.message["from_id"],
-                #     random_id=get_random_id(),
-                #     peer_id=event.obj.message["peer_id"],
-                #     message="товары",
-                #     template=json.dumps(carousel),
-                # )
                 if str(ADMIN) == str(event.obj.message["from_id"]):
                     send_message_new(event=event, pos=0, kboard=admin_kboards)
                 else:
@@ -94,7 +66,19 @@ def main():
                     keyboard_base()
                     fill_keyboard(event.obj.user_id, 1)
                     fill_keyboard(event.obj.user_id, 2, prev_but2)
+
                     if pos == 2:
+
+                        market_respose = vk2.market.get(owner_id=group_id, count=200, offset=0, extended=1)
+                        response = vk1.groups.getById(group_id=GROUPID)
+                        group_addr = response[0]['screen_name']
+
+                        items = market_respose['items']
+                        titles = []
+                        for item in items:
+                            titles.append(item['title'])
+
+                        counter = 0
                         att = take_text_or_voice(prev_but3)
                         if att[0] is not None:
                             if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
@@ -104,6 +88,21 @@ def main():
                                     peer_id=event.obj.peer_id,
                                     attachment=att[0]
                                 )
+                                for title in titles:
+                                    if str(title) == str(event.obj.payload.get("label")):
+                                        carousel = template_carousel.copy()
+                                        carousel['elements'] = []
+                                        element = create_element(items[counter], group_addr)
+                                        carousel['elements'].append(element)
+                                        vk1.messages.send(
+                                            user_id=event.obj.user_id,
+                                            random_id=get_random_id(),
+                                            peer_id=event.obj.peer_id,
+                                            message="Товар есть в наличии",
+                                            template=json.dumps(carousel),
+                                        )
+                                    counter = counter + 1
+
                             else:
                                 if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
                                     vk1.messages.send(
@@ -112,6 +111,22 @@ def main():
                                         peer_id=event.obj.peer_id,
                                         attachment=att[0]
                                     )
+
+                                    for title in titles:
+                                        if str(title) == str(event.obj.payload.get("label")):
+                                            carousel = template_carousel.copy()
+                                            carousel['elements'] = []
+                                            element = create_element(items[counter], group_addr)
+                                            carousel['elements'].append(element)
+                                            vk1.messages.send(
+                                                user_id=event.obj.user_id,
+                                                random_id=get_random_id(),
+                                                peer_id=event.obj.peer_id,
+                                                message="Товар есть в наличии",
+                                                template=json.dumps(carousel),
+                                            )
+                                        counter = counter + 1
+
                         if att[1] is not None:
                             if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
                                 vk1.messages.send(
@@ -120,6 +135,22 @@ def main():
                                     peer_id=event.obj.peer_id,
                                     message=att[1]
                                 )
+
+                                for title in titles:
+                                    if str(title) == str(event.obj.payload.get("label")):
+                                        carousel = template_carousel.copy()
+                                        carousel['elements'] = []
+                                        element = create_element(items[counter], group_addr)
+                                        carousel['elements'].append(element)
+                                        vk1.messages.send(
+                                            user_id=event.obj.user_id,
+                                            random_id=get_random_id(),
+                                            peer_id=event.obj.peer_id,
+                                            message="Товар есть в наличии",
+                                            template=json.dumps(carousel),
+                                        )
+                                    counter = counter + 1
+
                             else:
                                 if int(take_prev_buttons(event.obj.user_id, 1)) == 0:
                                     vk1.messages.send(
@@ -128,6 +159,22 @@ def main():
                                         peer_id=event.obj.peer_id,
                                         message=att[1]
                                     )
+
+                                    for title in titles:
+                                        if str(title) == str(event.obj.payload.get("label")):
+                                            carousel = template_carousel.copy()
+                                            carousel['elements'] = []
+                                            element = create_element(items[counter], group_addr)
+                                            carousel['elements'].append(element)
+                                            vk1.messages.send(
+                                                user_id=event.obj.user_id,
+                                                random_id=get_random_id(),
+                                                peer_id=event.obj.peer_id,
+                                                message="Товар есть в наличии",
+                                                template=json.dumps(carousel),
+                                            )
+                                        counter = counter + 1
+
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                         send_message(event=event, pos=pos+1, kboard=admin_kboards)
                     else:
@@ -176,7 +223,7 @@ def main():
                                     "action": {
                                         "type": "callback",
                                         "label": f"{label}",
-                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\"}}'
+                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\", \"label\": \"{label}\"}}'
                                     },
                                     "color": "secondary"
                                 }
@@ -431,7 +478,6 @@ def change_voice(n: str):
         if p1 is not None and p2 is not None:
             p2['voice'] = n
             butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-            print(butts2)
             update_buttons(2, butts2)
 
             for i in range(len(butts2)):
@@ -467,7 +513,6 @@ def change_text(n: str):
         if p1 is not None and p2 is not None:
             p2['text'] = n
             butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-            print(butts2)
             update_buttons(2, butts2)
 
             for i in range(len(butts2)):
