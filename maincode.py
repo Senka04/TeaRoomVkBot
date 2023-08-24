@@ -28,18 +28,18 @@ def main():
     global carousel, kboards, admin_kboards
 
     state = read_admin_mode()
-    market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
+    # market_respose = vk2.market.get(owner_id=group_id, count=100, offset=0, extended=1)
     response = vk1.groups.getById(group_id=GROUPID)
 
     # carousel
-    carousel = template_carousel.copy()
-    carousel['elements'] = []
+    # carousel = template_carousel.copy()
+    # carousel['elements'] = []
 
     group_addr = response[0]['screen_name']
-    items = market_respose['items']
-    for item in items:
-        element = create_element(item, group_addr)
-        carousel['elements'].append(element)
+    # items = market_respose['items']
+    # for item in items:
+    #     element = create_element(item, group_addr)
+    #     carousel['elements'].append(element)
 
     # keyboard
     keyboard_base()
@@ -415,20 +415,33 @@ def change_voice(n: str):
         pb2 = take_prev_buttons(ADMIN, 3)
         butts1 = take_buttons(1)
         butts2 = take_buttons(2)
-        p1 = eval(butts1[pb1][0]['action']['payload'])
-        p2 = eval(butts2[pb2][0]['action']['payload'])
-        p2['voice'] = n
-        butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-        update_buttons(2, butts2)
+        p1 = None
+        p2 = None
+
+        for i in range(len(butts1)):
+            if str(pb1) == str(eval(butts1[i][0]['action']['payload']).get("but")):
+                p1 = eval(butts1[i][0]['action']['payload'])
+                pb1 = i
 
         for i in range(len(butts2)):
-            if int(eval(butts2[i][0]['action']['payload']).get("voice")):
-                if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
-                    flag = True
+            if str(pb2) == str(eval(butts2[i][0]['action']['payload']).get("but")):
+                p2 = eval(butts2[i][0]['action']['payload'])
+                pb2 = i
 
-        p1['voice'] = "1" if flag is True else "0"
-        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
-        update_buttons(1, butts1)
+        if p1 is not None and p2 is not None:
+            p2['voice'] = n
+            butts2[pb2][0]['action']['payload'] = json.dumps(p2)
+            print(butts2)
+            update_buttons(2, butts2)
+
+            for i in range(len(butts2)):
+                if int(eval(butts2[i][0]['action']['payload']).get("voice")):
+                    if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
+                        flag = True
+
+            p1['voice'] = "1" if flag is True else "0"
+            butts1[pb1][0]['action']['payload'] = json.dumps(p1)
+            update_buttons(1, butts1)
 
 
 def change_text(n: str):
@@ -438,20 +451,33 @@ def change_text(n: str):
         pb2 = take_prev_buttons(ADMIN, 3)
         butts1 = take_buttons(1)
         butts2 = take_buttons(2)
-        p1 = eval(butts1[pb1][0]['action']['payload'])
-        p2 = eval(butts2[pb2][0]['action']['payload'])
-        p2['text'] = n
-        butts2[pb2][0]['action']['payload'] = json.dumps(p2)
-        update_buttons(2, butts2)
+        p1 = None
+        p2 = None
+
+        for i in range(len(butts1)):
+            if str(pb1) == str(eval(butts1[i][0]['action']['payload']).get("but")):
+                p1 = eval(butts1[i][0]['action']['payload'])
+                pb1 = i
 
         for i in range(len(butts2)):
-            if int(eval(butts2[i][0]['action']['payload']).get("text")):
-                if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
-                    flag = True
+            if str(pb2) == str(eval(butts2[i][0]['action']['payload']).get("but")):
+                p2 = eval(butts2[i][0]['action']['payload'])
+                pb2 = i
 
-        p1['text'] = "1" if flag is True else "0"
-        butts1[pb1][0]['action']['payload'] = json.dumps(p1)
-        update_buttons(1, butts1)
+        if p1 is not None and p2 is not None:
+            p2['text'] = n
+            butts2[pb2][0]['action']['payload'] = json.dumps(p2)
+            print(butts2)
+            update_buttons(2, butts2)
+
+            for i in range(len(butts2)):
+                if int(eval(butts2[i][0]['action']['payload']).get("text")):
+                    if str(pb1) == str(eval(butts2[i][0]['action']['payload']).get("prev_but")):
+                        flag = True
+
+            p1['text'] = "1" if flag is True else "0"
+            butts1[pb1][0]['action']['payload'] = json.dumps(p1)
+            update_buttons(1, butts1)
 
 
 def keyboard_base():
