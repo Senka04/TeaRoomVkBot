@@ -6,13 +6,12 @@ load_dotenv()  # можно не использовать в replit
 # определения, глобальные переменные
 API_VERSION = "5.131"
 GROUPID = '221959616'
-ADMIN = '350929022'
 group_id = '-'+str(GROUPID)
 
 # списки
 CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt", "add_text", "del_text", "add_voice", "del_voice")
 MESSAGES = ("Режим общения", "Сорт чая", "Выберите чай", "Выбор сделан")
-ADMIN_MESSAGES = ("Можете поменять названия кнопок",)
+ADMIN_MESSAGES = ("Нажмите на удаляемую кнопку либо отмените действие", "Напишите название либо отмените действие", "Напишите или перешлите текст", "Запишите или перешлите гс", "Вы точно хотите удалить информацию?")
 keyboard_buttons = []
 
 json1 = [
@@ -171,7 +170,7 @@ json_admin3 = [
         {
             "action": {
                 "type": "callback",
-                "label": "Добавить текст",
+                "label": "Добавить/Изменить текст",
                 "payload": "{\"type\": \"add_text\"}"
             },
             "color": "primary"
@@ -189,7 +188,7 @@ json_admin3 = [
         {
             "action": {
                 "type": "callback",
-                "label": "Добавить гс",
+                "label": "Добавить/Изменить гс",
                 "payload": "{\"type\": \"add_voice\"}"
             },
             "color": "primary"
@@ -229,6 +228,31 @@ cancel = {
                     "type": "callback",
                     "label": "Отмена",
                     "payload": "{\"type\": \"cancel\"}"
+                },
+                "color": "secondary"
+            }
+        ]
+    ]
+}
+
+confirm = {
+    "inline": True,
+    "buttons": [
+        [
+            {
+                "action": {
+                    "type": "callback",
+                    "label": "Отмена",
+                    "payload": "{\"type\": \"cancel\"}"
+                },
+                "color": "secondary"
+            }
+        ], [
+            {
+                "action": {
+                    "type": "callback",
+                    "label": "Подтверждаю",
+                    "payload": "{\"type\": \"confirm\"}"
                 },
                 "color": "secondary"
             }
