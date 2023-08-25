@@ -74,7 +74,6 @@ def main():
                     append_admin_butts123()
 
                     if pos == 2:
-
                         market_respose = vk2.market.get(owner_id=group_id, count=200, offset=0, extended=1)
                         response = vk1.groups.getById(group_id=GROUPID)
                         group_addr = response[0]['screen_name']
@@ -107,6 +106,11 @@ def main():
                                             message="Товар есть в наличии",
                                             template=json.dumps(carousel),
                                         )
+                                        vk1.messages.sendMessageEventAnswer(
+                                            event_id=event.obj.event_id,
+                                            user_id=event.obj.user_id,
+                                            peer_id=event.obj.peer_id
+                                        )
                                     counter = counter + 1
 
                             else:
@@ -130,6 +134,11 @@ def main():
                                                 peer_id=event.obj.peer_id,
                                                 message="Товар есть в наличии",
                                                 template=json.dumps(carousel),
+                                            )
+                                            vk1.messages.sendMessageEventAnswer(
+                                                event_id=event.obj.event_id,
+                                                user_id=event.obj.user_id,
+                                                peer_id=event.obj.peer_id
                                             )
                                         counter = counter + 1
 
@@ -155,6 +164,11 @@ def main():
                                             message="Товар есть в наличии",
                                             template=json.dumps(carousel),
                                         )
+                                        vk1.messages.sendMessageEventAnswer(
+                                            event_id=event.obj.event_id,
+                                            user_id=event.obj.user_id,
+                                            peer_id=event.obj.peer_id
+                                        )
                                     counter = counter + 1
 
                             else:
@@ -178,6 +192,11 @@ def main():
                                                 peer_id=event.obj.peer_id,
                                                 message="Товар есть в наличии",
                                                 template=json.dumps(carousel),
+                                            )
+                                            vk1.messages.sendMessageEventAnswer(
+                                                event_id=event.obj.event_id,
+                                                user_id=event.obj.user_id,
+                                                peer_id=event.obj.peer_id
                                             )
                                         counter = counter + 1
 
@@ -234,11 +253,15 @@ def main():
                                     "action": {
                                         "type": "callback",
                                         "label": f"{label}",
-                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\", \"label\": \"{label}\"}}'
+                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\", \"label\": \"{0}\"}}'
                                     },
                                     "color": "secondary"
                                 }
                             ]
+                            lbl_write = eval(new_butt[0]['action']['payload'])
+                            lbl_write["label"] = str(label)
+                            new_butt[0]['action']['payload'] = json.dumps(lbl_write, ensure_ascii=False)
+
                             if keyboard is None:
                                 keyboard = []
                             if str(ADMIN) == str(event_add.obj.message["from_id"]) and read_admin_mode() is True:
@@ -682,7 +705,7 @@ def take_buttons(column):
 
 def create_element(item, group_addr):
     photos = item['photos']
-    photo_id = str(item['owner_id']) + '_' + str(photos[0]['id'])
+    photo_id = str(item['owner_id']) + '_' + str(photos[1]['id'])
 
     product = item['id']
     product_id = str(group_id)+'_'+str(product)
