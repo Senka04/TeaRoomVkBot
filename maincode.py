@@ -36,6 +36,7 @@ def main():
     for i in range(members['count']):
         if str(members['items'][i]['role']) == 'creator':
             ADMIN = members['items'][i]['id']
+            break
 
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
@@ -614,7 +615,7 @@ def fill_keyboard(user_id, pos: int, prev_but=-1):
             text = eval(buttons_list[n][0]['action']['payload']).get('text')
             pb = take_prev_buttons(user_id, 1)
             if str(prev_but_list) == str(prev_but) or prev_but == -1:
-                if read_admin_mode() is not True:
+                if str(user_id) != str(ADMIN) or read_admin_mode() is not True:
                     if int(pb):
                         if int(voice):
                             admin_kboards[pos]['buttons'].append(buttons_list[n])
@@ -856,7 +857,12 @@ def send_message(event, pos, kboard):  # only for message_event
         time_diff = now - timestamp
 
         if time_diff < 24 * 60 * 60:
-            vk1.messages.delete(message_ids=message_id, delete_for_all=1)
+            for i in range(int(message['count'])):
+                try:
+                    vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
+                except vk_api.exceptions.ApiError as e:
+                    if e.code != 15 or e.error['error_msg'] != 'Access denied: message can not be found (3)':
+                        raise e
 
     kboard_send = template_kboard.copy()
     for i in range(0, len(kboard[pos]['buttons']), 6):
@@ -874,7 +880,7 @@ def send_message(event, pos, kboard):  # only for message_event
                 keyboard=json.dumps(kboard_send)
             )
         else:
-            pb = take_prev_buttons(ADMIN, 3)
+            pb = take_prev_buttons(event.obj.user_id, 3)
             butts = take_buttons(2)
             lbl = MESSAGES[pos]
             for b in range(len(butts)):
@@ -934,7 +940,12 @@ def send_message_new(event, pos, kboard):  # only for message_new
         time_diff = now - timestamp
 
         if time_diff < 24 * 60 * 60:
-            vk1.messages.delete(message_ids=message_id, delete_for_all=1)
+            for i in range(int(message['count'])):
+                try:
+                    vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
+                except vk_api.exceptions.ApiError as e:
+                    if e.code != 15 or e.error['error_msg'] != 'Access denied: message can not be found (3)':
+                        raise e
 
     kboard_send = template_kboard.copy()
     for i in range(0, len(kboard[pos]['buttons']), 6):
@@ -952,7 +963,7 @@ def send_message_new(event, pos, kboard):  # only for message_new
                 keyboard=json.dumps(kboard_send)
             )
         else:
-            pb = take_prev_buttons(ADMIN, 3)
+            pb = take_prev_buttons(event.obj.message["from_id"], 3)
             butts = take_buttons(2)
             lbl = MESSAGES[pos]
 
