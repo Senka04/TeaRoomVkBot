@@ -53,7 +53,12 @@ def main():
                     user_id=event.obj.message["from_id"],
                     random_id=get_random_id(),
                     peer_id=event.obj.message["peer_id"],
-                    message="Команда \"Начать\" запустит бота.\nЛюбое другое сообщение дойдет до Алексея, и он обязательно ответит",
+                    message="Команда \"Начать\" запустит бота.\n",
+                )
+                vk1.messages.send(
+                    user_id=ADMIN,
+                    forward_messages=event.obj.message["id"],
+                    random_id=get_random_id()
                 )
 
         elif event.type == VkBotEventType.MESSAGE_EVENT:
@@ -356,8 +361,9 @@ def main():
                                 send_message(event=event_del_text, pos=pos, kboard=admin_kboards)
                                 break
                             if event_del_text.obj.payload.get("type") == "confirm":
-                                data = update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message='')
-                                if data is not None and str(data[2]) != '':
+                                txt_vc = take_text_or_voice(button_number=take_prev_buttons(ADMIN, 3))
+                                if txt_vc[1] is not None:
+                                    update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), text_message='')
                                     change_text("0")
                                     vk1.messages.send(
                                         user_id=event.obj.user_id,
@@ -441,8 +447,9 @@ def main():
                                 send_message(event=event_del_voice, pos=pos, kboard=admin_kboards)
                                 break
                             if event_del_voice.obj.payload.get("type") == "confirm":
-                                data = update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message='')
-                                if data is not None and str(data[1]) != '':
+                                txt_vc = take_text_or_voice(button_number=take_prev_buttons(ADMIN, 3))
+                                if txt_vc[0] is not None:
+                                    update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message='')
                                     change_voice("0")
                                     vk1.messages.send(
                                         user_id=event.obj.user_id,
@@ -492,7 +499,6 @@ def update_text_or_voice(button_number, voice_message=None, text_message=None):
 
     conn.commit()
     conn.close()
-    return data
 
 
 def take_text_or_voice(button_number):
