@@ -41,6 +41,21 @@ def main():
     for event in longpoll.listen():
         if event.type == VkBotEventType.MESSAGE_NEW:
             if event.obj.message["text"] == "Начать":
+                message_id = take_last_message_id(user_id=event.obj.message["from_id"], t=True)
+                if message_id is not None and message_id != []:
+                    message = vk1.messages.getById(message_ids=message_id)
+                    timestamp = message['items'][0]['date']
+                    now = time.time()
+                    time_diff = now - timestamp
+
+                    if time_diff < 24 * 60 * 60:
+                        for i in range(int(message['count'])):
+                            try:
+                                vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
+                            except vk_api.exceptions.ApiError as e:
+                                if e.code != 15 or e.error['error_msg'] != 'Access denied: message can not be found (3)':
+                                    raise e
+                update_last_message_id(new_id=[], user_id=event.obj.message["from_id"], t=True)
 
                 if str(ADMIN) == str(event.obj.message["from_id"]):
                     send_message_new(event=event, pos=0, kboard=admin_kboards)
@@ -68,7 +83,7 @@ def main():
                 conversation_message_ids=conversation_message_id
             )
             message_id = message['items'][0]['id']
-            if message_id in take_last_message_id(event.obj.user_id):
+            if message_id in take_last_message_id(user_id=event.obj.user_id):
                 if event.obj.payload.get("type") == CALLBACK_MODES[0]:  # next
                     pos = int(take_position(event.obj.user_id))
                     update_prev_buttons(event.obj.user_id, pos+1, event.obj.payload.get("but"))
@@ -91,71 +106,75 @@ def main():
 
                         counter = 0
                         att = take_text_or_voice(prev_but3)
+                        new_last_message_ids = take_last_message_id(user_id=event.obj.user_id, t=True)
+
                         if att[0] is not None:
                             if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
-                                vk1.messages.send(
+                                new_last_message_id = vk1.messages.send(
                                     user_id=event.obj.user_id,
                                     random_id=get_random_id(),
                                     peer_id=event.obj.peer_id,
                                     attachment=att[0]
                                 )
-
+                                new_last_message_ids.append(new_last_message_id)
                             else:
                                 if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
-                                    vk1.messages.send(
+                                    new_last_message_id = vk1.messages.send(
                                         user_id=event.obj.user_id,
                                         random_id=get_random_id(),
                                         peer_id=event.obj.peer_id,
                                         attachment=att[0]
                                     )
-
+                                    new_last_message_ids.append(new_last_message_id)
                                     for title in titles:
                                         if str(title) == str(event.obj.payload.get("label")):
                                             carousel = template_carousel.copy()
                                             carousel['elements'] = []
                                             element = create_element(items[counter], group_addr)
                                             carousel['elements'].append(element)
-                                            vk1.messages.send(
+                                            new_last_message_id = vk1.messages.send(
                                                 user_id=event.obj.user_id,
                                                 random_id=get_random_id(),
                                                 peer_id=event.obj.peer_id,
                                                 message="Товар есть в наличии",
                                                 template=json.dumps(carousel),
                                             )
+                                            new_last_message_ids.append(new_last_message_id)
                                             break
                                         counter = counter + 1
 
                         if att[1] is not None:
                             if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
-                                vk1.messages.send(
+                                new_last_message_id = vk1.messages.send(
                                     user_id=event.obj.user_id,
                                     random_id=get_random_id(),
                                     peer_id=event.obj.peer_id,
                                     message=att[1]
                                 )
-
+                                new_last_message_ids.append(new_last_message_id)
                             else:
                                 if int(take_prev_buttons(event.obj.user_id, 1)) == 0:
-                                    vk1.messages.send(
+                                    new_last_message_id = vk1.messages.send(
                                         user_id=event.obj.user_id,
                                         random_id=get_random_id(),
                                         peer_id=event.obj.peer_id,
                                         message=att[1]
                                     )
-
+                                    new_last_message_ids.append(new_last_message_id)
                                     for title in titles:
                                         if str(title) == str(event.obj.payload.get("label")):
                                             carousel = template_carousel.copy()
                                             carousel['elements'] = []
                                             element = create_element(items[counter], group_addr)
                                             carousel['elements'].append(element)
-                                            vk1.messages.send(
+                                            new_last_message_id = vk1.messages.send(
                                                 user_id=event.obj.user_id,
                                                 random_id=get_random_id(),
                                                 peer_id=event.obj.peer_id,
                                                 message="Товар есть в наличии",
                                                 template=json.dumps(carousel),
                                             )
+                                            new_last_message_ids.append(new_last_message_id)
                                             break
                                         counter = counter + 1
 
@@ -166,15 +185,17 @@ def main():
                                     carousel['elements'] = []
                                     element = create_element(items[counter], group_addr)
                                     carousel['elements'].append(element)
-                                    vk1.messages.send(
+                                    new_last_message_id = vk1.messages.send(
                                         user_id=event.obj.user_id,
                                         random_id=get_random_id(),
                                         peer_id=event.obj.peer_id,
                                         message="Товар есть в наличии",
                                         template=json.dumps(carousel),
                                     )
+                                    new_last_message_ids.append(new_last_message_id)
                                     break
                                 counter = counter + 1
+                        update_last_message_id(new_id=new_last_message_ids, user_id=event.obj.user_id, t=True)
 
                     if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                         send_message(event=event, pos=pos+1, kboard=admin_kboards)
@@ -183,7 +204,25 @@ def main():
                     update_position(pos+1, event.obj.user_id)
 
                 elif event.obj.payload.get("type") == CALLBACK_MODES[1]:  # back
-                    newpos = take_position(event.obj.user_id)-1
+                    pos = take_position(event.obj.user_id)
+                    if pos == 3:
+                        message_id = take_last_message_id(user_id=event.obj.user_id, t=True)
+                        if message_id is not None and message_id != []:
+                            message = vk1.messages.getById(message_ids=message_id)
+                            timestamp = message['items'][0]['date']
+                            now = time.time()
+                            time_diff = now - timestamp
+
+                            if time_diff < 24 * 60 * 60:
+                                for i in range(int(message['count'])):
+                                    try:
+                                        vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
+                                    except vk_api.exceptions.ApiError as e:
+                                        if e.code != 15 or e.error['error_msg'] != 'Access denied: message can not be found (3)':
+                                            raise e
+                        update_last_message_id(new_id=[], user_id=event.obj.user_id, t=True)
+
+                    newpos = pos-1
                     prev_but2 = take_prev_buttons(event.obj.user_id, 2)
                     keyboard_base()
                     fill_keyboard(event.obj.user_id, 1)
@@ -798,36 +837,64 @@ def take_position(user_id):
         conn.close()
 
 
-def update_last_message_id(new_id, user_id):
+def update_last_message_id(new_id, user_id, t=False):  # t - table (False - keyboards, True - messages)
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
-    try:
-        c.execute("SELECT * FROM messages WHERE userid = ?", (user_id,))
-        row = c.fetchone()
-        if row is None:
-            c.execute("INSERT INTO messages (userid, LastMessageId) VALUES (?, ?)", (user_id, str(new_id)))
-        else:
-            c.execute("UPDATE messages SET LastMessageId = ? WHERE userid = ?", (str(new_id), user_id))
-        conn.commit()
-    finally:
-        conn.close()
-    return
+    if t is True:
+        c.execute('''CREATE TABLE IF NOT EXISTS messages2 (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
+        try:
+            c.execute("SELECT * FROM messages2 WHERE userid = ?", (user_id,))
+            row = c.fetchone()
+            if row is None:
+                c.execute("INSERT INTO messages2 (userid, LastMessageId) VALUES (?, ?)", (user_id, str(new_id)))
+            else:
+                c.execute("UPDATE messages2 SET LastMessageId = ? WHERE userid = ?", (str(new_id), user_id))
+            conn.commit()
+        finally:
+            conn.close()
+        return
+
+    else:
+        c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
+        try:
+            c.execute("SELECT * FROM messages WHERE userid = ?", (user_id,))
+            row = c.fetchone()
+            if row is None:
+                c.execute("INSERT INTO messages (userid, LastMessageId) VALUES (?, ?)", (user_id, str(new_id)))
+            else:
+                c.execute("UPDATE messages SET LastMessageId = ? WHERE userid = ?", (str(new_id), user_id))
+            conn.commit()
+        finally:
+            conn.close()
+        return
 
 
-def take_last_message_id(user_id):
+def take_last_message_id(user_id, t=False):  # t - table (False - keyboards, True - messages)
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
-    try:
-        c.execute("SELECT LastMessageId FROM messages WHERE userid = ?", (user_id,))
-        row = c.fetchone()
-        if row is None:
-            return None
-        else:
-            return eval(row[0])
-    finally:
-        conn.close()
+    if t is True:
+        c.execute('''CREATE TABLE IF NOT EXISTS messages2 (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
+        try:
+            c.execute("SELECT LastMessageId FROM messages2 WHERE userid = ?", (user_id,))
+            row = c.fetchone()
+            if row is None:
+                return None
+            else:
+                return eval(row[0])
+        finally:
+            conn.close()
+
+    else:
+        c.execute('''CREATE TABLE IF NOT EXISTS messages (userid INTEGER PRIMARY KEY, LastMessageId TEXT)''')
+        try:
+            c.execute("SELECT LastMessageId FROM messages WHERE userid = ?", (user_id,))
+            row = c.fetchone()
+            if row is None:
+                return None
+            else:
+                return eval(row[0])
+        finally:
+            conn.close()
 
 
 def update_admin_mode(state):
@@ -855,7 +922,7 @@ def read_admin_mode():
 
 def send_message(event, pos, kboard):  # only for message_event
     new_last_message_ids = []
-    message_id = take_last_message_id(event.obj.user_id)
+    message_id = take_last_message_id(user_id=event.obj.user_id)
     if message_id is not None:
         message = vk1.messages.getById(message_ids=message_id)
         timestamp = message['items'][0]['date']
@@ -902,7 +969,7 @@ def send_message(event, pos, kboard):  # only for message_event
             )
         new_last_message_ids.append(new_last_message_id)
 
-    update_last_message_id(new_last_message_ids, event.obj.user_id)
+    update_last_message_id(new_id=new_last_message_ids, user_id=event.obj.user_id)
     vk1.messages.sendMessageEventAnswer(
         event_id=event.obj.event_id,
         user_id=event.obj.user_id,
@@ -911,7 +978,7 @@ def send_message(event, pos, kboard):  # only for message_event
 
 
 def send_message_cancel(event, mes):  # only for message_event
-    new_last_message_ids = take_last_message_id(event.obj.user_id)
+    new_last_message_ids = take_last_message_id(user_id=event.obj.user_id)
     new_last_message_id = vk1.messages.send(
         user_id=event.obj.user_id,
         random_id=get_random_id(),
@@ -920,11 +987,11 @@ def send_message_cancel(event, mes):  # only for message_event
         keyboard=json.dumps(cancel)
     )
     new_last_message_ids.append(new_last_message_id)
-    update_last_message_id(new_last_message_ids, event.obj.user_id)
+    update_last_message_id(new_id=new_last_message_ids, user_id=event.obj.user_id)
 
 
 def send_message_confirm(event, mes):  # only for message_event
-    new_last_message_ids = take_last_message_id(event.obj.user_id)
+    new_last_message_ids = take_last_message_id(user_id=event.obj.user_id)
     new_last_message_id = vk1.messages.send(
         user_id=event.obj.user_id,
         random_id=get_random_id(),
@@ -933,12 +1000,12 @@ def send_message_confirm(event, mes):  # only for message_event
         keyboard=json.dumps(confirm)
     )
     new_last_message_ids.append(new_last_message_id)
-    update_last_message_id(new_last_message_ids, event.obj.user_id)
+    update_last_message_id(new_id=new_last_message_ids, user_id=event.obj.user_id)
 
 
 def send_message_new(event, pos, kboard):  # only for message_new
     new_last_message_ids = []
-    message_id = take_last_message_id(event.obj.message["from_id"])
+    message_id = take_last_message_id(user_id=event.obj.message["from_id"])
     if message_id is not None:
         message = vk1.messages.getById(message_ids=message_id)
         timestamp = message['items'][0]['date']
@@ -987,7 +1054,7 @@ def send_message_new(event, pos, kboard):  # only for message_new
 
         new_last_message_ids.append(new_last_message_id)
 
-    update_last_message_id(new_last_message_ids, event.obj.message["from_id"])
+    update_last_message_id(new_id=new_last_message_ids, user_id=event.obj.message["from_id"])
 
 
 # keep_alive() #для деплоя
