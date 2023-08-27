@@ -256,39 +256,40 @@ def main():
                                 send_message(event=event_add, pos=pos, kboard=admin_kboards)
                                 break
                         elif event_add.type == VkBotEventType.MESSAGE_NEW:
-                            keyboard = take_buttons(pos)
-                            label = event_add.obj.message["text"]
-                            pb = take_prev_buttons(event.obj.user_id, pos)
-                            butts = []
-                            for n in range(len(keyboard)):
-                                butts.append(int(eval(keyboard[n][0]['action']['payload']).get("but")))
-                            b = add_missing_numbers(butts)
-                            new_butt = [
-                                {
-                                    "action": {
-                                        "type": "callback",
-                                        "label": f"{label}",
-                                        "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\", \"label\": \"{0}\"}}'
-                                    },
-                                    "color": "secondary"
-                                }
-                            ]
-                            lbl_write = eval(new_butt[0]['action']['payload'])
-                            lbl_write["label"] = str(label)
-                            new_butt[0]['action']['payload'] = json.dumps(lbl_write, ensure_ascii=False)
+                            if str(event_add.obj.message["text"]) != '':
+                                keyboard = take_buttons(pos)
+                                label = event_add.obj.message["text"]
+                                pb = take_prev_buttons(event.obj.user_id, pos)
+                                butts = []
+                                for n in range(len(keyboard)):
+                                    butts.append(int(eval(keyboard[n][0]['action']['payload']).get("but")))
+                                b = add_missing_numbers(butts)
+                                new_butt = [
+                                    {
+                                        "action": {
+                                            "type": "callback",
+                                            "label": f"{label}",
+                                            "payload": f'{{\"type\": \"next\", \"prev_but\": \"{pb}\", \"but\": \"{b}\", \"text\": \"0\", \"voice\": \"0\", \"label\": \"{0}\"}}'
+                                        },
+                                        "color": "secondary"
+                                    }
+                                ]
+                                lbl_write = eval(new_butt[0]['action']['payload'])
+                                lbl_write["label"] = str(label)
+                                new_butt[0]['action']['payload'] = json.dumps(lbl_write, ensure_ascii=False)
 
-                            if keyboard is None:
-                                keyboard = []
-                            if str(ADMIN) == str(event_add.obj.message["from_id"]) and read_admin_mode() is True:
-                                keyboard.append(new_butt)
-                                update_buttons(pos, keyboard)
-                                prev_but2 = take_prev_buttons(ADMIN, 2)
-                                keyboard_base()
-                                fill_keyboard(event.obj.user_id, 1)
-                                fill_keyboard(event.obj.user_id, 2, prev_but2)
-                                append_admin_butts123()
-                                send_message_new(event=event_add, pos=pos, kboard=admin_kboards)
-                                break
+                                if keyboard is None:
+                                    keyboard = []
+                                if str(ADMIN) == str(event_add.obj.message["from_id"]) and read_admin_mode() is True:
+                                    keyboard.append(new_butt)
+                                    update_buttons(pos, keyboard)
+                                    prev_but2 = take_prev_buttons(ADMIN, 2)
+                                    keyboard_base()
+                                    fill_keyboard(event.obj.user_id, 1)
+                                    fill_keyboard(event.obj.user_id, 2, prev_but2)
+                                    append_admin_butts123()
+                                    send_message_new(event=event_add, pos=pos, kboard=admin_kboards)
+                                    break
 
                 elif event.obj.payload.get("type") == CALLBACK_MODES[4]:  # del_butt
                     send_message_cancel(event, 0)
