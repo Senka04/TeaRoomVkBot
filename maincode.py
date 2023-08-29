@@ -568,20 +568,22 @@ def change_voice(n: str):
         butts2 = take_buttons(2)
         p1 = None
         p2 = None
+        i1 = None
+        i2 = None
 
         for i in range(len(butts1)):
             if str(pb1) == str(eval(butts1[i][0]['action']['payload']).get("but")):
                 p1 = eval(butts1[i][0]['action']['payload'])
-                pb1 = i
+                i1 = i
 
         for i in range(len(butts2)):
             if str(pb2) == str(eval(butts2[i][0]['action']['payload']).get("but")):
                 p2 = eval(butts2[i][0]['action']['payload'])
-                pb2 = i
+                i2 = i
 
         if p1 is not None and p2 is not None:
             p2['voice'] = n
-            butts2[pb2][0]['action']['payload'] = json.dumps(p2, ensure_ascii=False)
+            butts2[i2][0]['action']['payload'] = json.dumps(p2, ensure_ascii=False)
             update_buttons(2, butts2)
 
             for i in range(len(butts2)):
@@ -590,7 +592,7 @@ def change_voice(n: str):
                         flag = True
 
             p1['voice'] = "1" if flag is True else "0"
-            butts1[pb1][0]['action']['payload'] = json.dumps(p1, ensure_ascii=False)
+            butts1[i1][0]['action']['payload'] = json.dumps(p1, ensure_ascii=False)
             update_buttons(1, butts1)
 
 
@@ -603,20 +605,22 @@ def change_text(n: str):
         butts2 = take_buttons(2)
         p1 = None
         p2 = None
+        i1 = None
+        i2 = None
 
         for i in range(len(butts1)):
             if str(pb1) == str(eval(butts1[i][0]['action']['payload']).get("but")):
                 p1 = eval(butts1[i][0]['action']['payload'])
-                pb1 = i
+                i1 = i
 
         for i in range(len(butts2)):
             if str(pb2) == str(eval(butts2[i][0]['action']['payload']).get("but")):
                 p2 = eval(butts2[i][0]['action']['payload'])
-                pb2 = i
+                i2 = i
 
         if p1 is not None and p2 is not None:
             p2['text'] = n
-            butts2[pb2][0]['action']['payload'] = json.dumps(p2, ensure_ascii=False)
+            butts2[i2][0]['action']['payload'] = json.dumps(p2, ensure_ascii=False)
             update_buttons(2, butts2)
 
             for i in range(len(butts2)):
@@ -625,7 +629,7 @@ def change_text(n: str):
                         flag = True
 
             p1['text'] = "1" if flag is True else "0"
-            butts1[pb1][0]['action']['payload'] = json.dumps(p1, ensure_ascii=False)
+            butts1[i1][0]['action']['payload'] = json.dumps(p1, ensure_ascii=False)
             update_buttons(1, butts1)
 
 
