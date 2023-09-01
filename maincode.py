@@ -16,9 +16,6 @@ longpoll = VkBotLongPoll(vk_session1, GROUPID)
 vk_session2 = vk_api.VkApi(token=os.environ.get("USERID"), api_version=API_VERSION)
 vk2 = vk_session2.get_api()
 
-# carousel
-carousel = ''
-
 # массив клавиатур
 kboards = []
 admin_kboards = []
@@ -26,7 +23,7 @@ ADMIN = None
 
 
 def main():
-    global carousel, kboards, admin_kboards, ADMIN
+    global kboards, admin_kboards, ADMIN
 
     state = read_admin_mode()
 
@@ -48,7 +45,7 @@ def main():
                     now = time.time()
                     time_diff = now - timestamp
 
-                    if time_diff < 24 * 60 * 60:
+                    if time_diff < diff_timer:
                         for i in range(int(message['count'])):
                             try:
                                 vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
@@ -96,8 +93,6 @@ def main():
 
                     if pos == 2:
                         market_respose = vk2.market.get(owner_id=group_id, count=200, offset=0, extended=1)
-                        response = vk1.groups.getById(group_id=GROUPID)
-                        group_addr = response[0]['screen_name']
 
                         items = market_respose['items']
                         titles = []
@@ -128,16 +123,12 @@ def main():
                                     new_last_message_ids.append(new_last_message_id)
                                     for title in titles:
                                         if str(title) == str(event.obj.payload.get("label")):
-                                            carousel = template_carousel.copy()
-                                            carousel['elements'] = []
-                                            element = create_element(items[counter], group_addr)
-                                            carousel['elements'].append(element)
+                                            prod = items[counter]
                                             new_last_message_id = vk1.messages.send(
                                                 user_id=event.obj.user_id,
                                                 random_id=get_random_id(),
                                                 peer_id=event.obj.peer_id,
-                                                message="Товар есть в наличии",
-                                                template=json.dumps(carousel),
+                                                attachment=f"market{group_id}_{prod['id']}",
                                             )
                                             new_last_message_ids.append(new_last_message_id)
                                             break
@@ -163,16 +154,12 @@ def main():
                                     new_last_message_ids.append(new_last_message_id)
                                     for title in titles:
                                         if str(title) == str(event.obj.payload.get("label")):
-                                            carousel = template_carousel.copy()
-                                            carousel['elements'] = []
-                                            element = create_element(items[counter], group_addr)
-                                            carousel['elements'].append(element)
+                                            prod = items[counter]
                                             new_last_message_id = vk1.messages.send(
                                                 user_id=event.obj.user_id,
                                                 random_id=get_random_id(),
                                                 peer_id=event.obj.peer_id,
-                                                message="Товар есть в наличии",
-                                                template=json.dumps(carousel),
+                                                attachment=f"market{group_id}_{prod['id']}",
                                             )
                                             new_last_message_ids.append(new_last_message_id)
                                             break
@@ -181,16 +168,12 @@ def main():
                         if str(ADMIN) == str(event.obj.user_id) and read_admin_mode() is True:
                             for title in titles:
                                 if str(title) == str(event.obj.payload.get("label")):
-                                    carousel = template_carousel.copy()
-                                    carousel['elements'] = []
-                                    element = create_element(items[counter], group_addr)
-                                    carousel['elements'].append(element)
+                                    prod = items[counter]
                                     new_last_message_id = vk1.messages.send(
                                         user_id=event.obj.user_id,
                                         random_id=get_random_id(),
                                         peer_id=event.obj.peer_id,
-                                        message="Товар есть в наличии",
-                                        template=json.dumps(carousel),
+                                        attachment=f"market{group_id}_{prod['id']}",
                                     )
                                     new_last_message_ids.append(new_last_message_id)
                                     break
@@ -213,7 +196,7 @@ def main():
                             now = time.time()
                             time_diff = now - timestamp
 
-                            if time_diff < 24 * 60 * 60:
+                            if time_diff < diff_timer:
                                 for i in range(int(message['count'])):
                                     try:
                                         vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
@@ -724,45 +707,6 @@ def take_buttons(column):
         return eval(data[0])
 
 
-def create_element(item, group_addr):
-    photos = item['photos']
-    photo_id = str(item['owner_id']) + '_' + str(photos[1]['id'])
-
-    product = item['id']
-    product_id = str(group_id)+'_'+str(product)
-
-    title = str(item['title'])+'\n'+str(item['price']['text'])
-    description = item['description']
-    if len(description) > 80:
-        description = description[:77] + '...'
-    if len(title) > 80:
-        title = title[:77] + '...'
-    element = {
-        'photo_id': f"{photo_id}",
-        'action': {
-            'type': 'open_photo'
-        },
-        'title': title,
-        'description': description,
-        'buttons': [{
-            'action': {
-                'type': 'open_link',
-                'link': f"https://vk.com/{group_addr}?w=product{product_id}",
-                'label': 'К товару',
-                'payload': '{}'
-            }
-        }, {
-            'action': {
-                'type': 'open_link',
-                'link': f"https://vk.com/market{group_id}?screen=market_item",
-                'label': 'В магазин',
-                'payload': '{}'
-            }
-        }]
-    }
-    return element
-
-
 def update_prev_buttons(user_id, menu, but):
     conn = sqlite3.connect('menu_positions.db')
     c = conn.cursor()
@@ -934,7 +878,7 @@ def send_message(event, pos, kboard):  # only for message_event
         now = time.time()
         time_diff = now - timestamp
 
-        if time_diff < 24 * 60 * 60:
+        if time_diff < diff_timer:
             for i in range(int(message['count'])):
                 try:
                     vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)
@@ -1017,7 +961,7 @@ def send_message_new(event, pos, kboard):  # only for message_new
         now = time.time()
         time_diff = now - timestamp
 
-        if time_diff < 24 * 60 * 60:
+        if time_diff < diff_timer:
             for i in range(int(message['count'])):
                 try:
                     vk1.messages.delete(message_ids=message_id[i], delete_for_all=1)

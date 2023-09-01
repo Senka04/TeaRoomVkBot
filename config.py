@@ -7,6 +7,7 @@ load_dotenv()  # можно не использовать в replit
 API_VERSION = "5.131"
 GROUPID = '221959616'
 group_id = '-'+str(GROUPID)
+diff_timer = 24 * 60 * 60
 
 # списки
 CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt", "add_text", "del_text", "add_voice", "del_voice")
@@ -208,11 +209,6 @@ keyboard_buttons.append(json1.copy())
 keyboard_buttons.append(json2.copy())
 keyboard_buttons.append(json3.copy())
 keyboard_buttons.append(json4.copy())
-
-template_carousel = {
-    "type": "carousel",
-    "elements": []
-}
 
 template_kboard = {
     "inline": True,
