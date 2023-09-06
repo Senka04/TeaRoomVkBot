@@ -79,7 +79,12 @@ def main():
                 peer_id=event.obj.peer_id,
                 conversation_message_ids=conversation_message_id
             )
-            message_id = message['items'][0]['id']
+
+            if list(message['items']):
+                message_id = message['items'][0]['id']
+            else:
+                message_id = None
+
             if message_id in take_last_message_id(user_id=event.obj.user_id):
                 if event.obj.payload.get("type") == CALLBACK_MODES[0]:  # next
                     pos = int(take_position(event.obj.user_id))
