@@ -65,7 +65,7 @@ def main():
                     user_id=event.obj.message["from_id"],
                     random_id=get_random_id(),
                     peer_id=event.obj.message["peer_id"],
-                    message="Команда \"Начать\" запустит бота.\n",
+                    message="Команда \"Начать\" запустит бота\n",
                 )
                 vk1.messages.send(
                     user_id=ADMIN,
@@ -489,6 +489,66 @@ def main():
                                     )
                                 send_message(event=event, pos=pos, kboard=admin_kboards)
                                 break
+
+                elif event.obj.payload.get("type") == CALLBACK_MODES[9]:  # rename_butt
+                    send_message_cancel(event, 5)
+                    pos = int(take_position(event.obj.user_id))
+                    break_flag = False
+                    butt_pos = None
+                    butt_name = None
+                    keyboard1 = take_buttons(1)
+                    keyboard2 = take_buttons(2)
+                    for event_rename in longpoll.listen():
+                        if event_rename.type == VkBotEventType.MESSAGE_EVENT:
+                            if event_rename.obj.payload.get("type") == "cancel":
+                                send_message(event=event_rename, pos=pos, kboard=admin_kboards)
+                                break
+                            if event_rename.obj.payload.get("type") == CALLBACK_MODES[0]:
+                                butt1 = event_rename.obj.payload.get("but")
+                                if pos == 1:
+                                    copy = keyboard1.copy()
+                                    for i in range(len(copy)-1, -1, -1):
+                                        butt2 = eval(copy[i][0]['action']['payload']).get("but")
+                                        if str(butt1) == str(butt2):
+                                            butt_pos = i
+                                            break
+                                if pos == 2:
+                                    copy = keyboard2.copy()
+                                    for i in range(len(copy)-1, -1, -1):
+                                        butt2 = eval(copy[i][0]['action']['payload']).get("but")
+                                        if str(butt1) == str(butt2):
+                                            butt_pos = i
+                                            break
+
+                        if event_rename.type == VkBotEventType.MESSAGE_NEW:
+                            message = vk1.messages.getById(message_ids=event_rename.obj.message["id"])['items'][0]
+                            if message['text'] != '':
+                                butt_name = message['text']
+
+                            if butt_pos is not None:
+                                if pos == 1:
+                                    keyboard1[butt_pos][0]['action']['label'] = butt_name
+                                    p1 = eval(keyboard1[butt_pos][0]['action']['payload'])
+                                    p1['label'] = butt_name
+                                    keyboard1[butt_pos][0]['action']['payload'] = json.dumps(p1,  ensure_ascii=False)
+                                    update_buttons(1, keyboard1)
+                                elif pos == 2:
+                                    keyboard2[butt_pos][0]['action']['label'] = butt_name
+                                    p2 = eval(keyboard2[butt_pos][0]['action']['payload'])
+                                    p2['label'] = butt_name
+                                    keyboard2[butt_pos][0]['action']['payload'] = json.dumps(p2, ensure_ascii=False)
+                                    update_buttons(2, keyboard2)
+
+                                keyboard_base()
+                                prev_but2 = take_prev_buttons(event.obj.user_id, 2)
+                                fill_keyboard(event.obj.user_id, 1)
+                                fill_keyboard(event.obj.user_id, 2, prev_but2)
+                                append_admin_butts123()
+                                send_message_new(event=event_rename, pos=pos, kboard=admin_kboards)
+                                break_flag = True
+
+                        if break_flag is True:
+                            break
 
 
 def add_missing_numbers(numbers):

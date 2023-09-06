@@ -10,9 +10,9 @@ group_id = '-'+str(GROUPID)
 diff_timer = 24 * 60 * 60
 
 # списки
-CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt", "add_text", "del_text", "add_voice", "del_voice")
-MESSAGES = ("Режим общения", "Сорт чая", "Выберите чай", "Выбор сделан")
-ADMIN_MESSAGES = ("Нажмите на удаляемую кнопку либо отмените действие", "Напишите название либо отмените действие", "Напишите или перешлите текст", "Запишите или перешлите гс", "Вы точно хотите удалить информацию?")
+CALLBACK_MODES = ("next", "back", "admin", "add_butt", "del_butt", "add_text", "del_text", "add_voice", "del_voice", "rename_butt")
+MESSAGES = ("Режим общения", "Сорт Чая", "Выберите Чай", "Выбор сделан")
+ADMIN_MESSAGES = ("Нажмите на удаляемую кнопку либо отмените действие", "Напишите название либо отмените действие", "Напишите или перешлите текст", "Запишите или перешлите гс", "Вы точно хотите удалить информацию?", "Нажмите на кнопку, затем введите новое имя")
 keyboard_buttons = []
 
 json1 = [
@@ -146,6 +146,15 @@ json_admin1_exit = [
 ]
 json_admin2 = [
     [
+        {
+            "action": {
+                "type": "callback",
+                "label": "Переименовать кнопку",
+                "payload": "{\"type\": \"rename_butt\"}"
+            },
+            "color": "primary"
+        }
+    ], [
         {
             "action": {
                 "type": "callback",
