@@ -45,7 +45,6 @@ def main():
                         timestamp = message['items'][0]['date']
                         now = time.time()
                         time_diff = now - timestamp
-
                         if time_diff < diff_timer:
                             for i in range(int(message['count'])):
                                 try:
@@ -62,12 +61,28 @@ def main():
 
                     update_position(0, event.obj.message["from_id"])
                 else:
-                    vk1.messages.send(
+                    msgs = vk1.messages.getHistory(
                         user_id=event.obj.message["from_id"],
-                        random_id=get_random_id(),
                         peer_id=event.obj.message["peer_id"],
-                        message="Команда \"Начать\" запустит бота\n",
+                        count=100,
                     )
+
+                    command_begin_flag = True
+                    for m in range(len(msgs['items'])):
+                        if msgs['items'][m]['text'] == MESSAGES[4]:
+                            timestamp = msgs['items'][1]['date']
+                            now = time.time()
+                            time_diff = now - timestamp
+                            if time_diff < diff_timer:
+                                command_begin_flag = False
+
+                    if command_begin_flag:
+                        vk1.messages.send(
+                            user_id=event.obj.message["from_id"],
+                            random_id=get_random_id(),
+                            peer_id=event.obj.message["peer_id"],
+                            message=MESSAGES[4],
+                        )
                     vk1.messages.send(
                         user_id=ADMIN,
                         forward_messages=event.obj.message["id"],
