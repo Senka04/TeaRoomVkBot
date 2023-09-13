@@ -38,7 +38,7 @@ def main():
     for event in longpoll.listen():
         try:
             if event.type == VkBotEventType.MESSAGE_NEW:
-                if event.obj.message["text"] == "Начать":
+                if event.obj.message["text"] in ["Начать", "начать", "НАЧАТЬ"]:
                     message_id = take_last_message_id(user_id=event.obj.message["from_id"], t=True)
                     if message_id is not None and message_id != []:
                         message = vk1.messages.getById(message_ids=message_id)
