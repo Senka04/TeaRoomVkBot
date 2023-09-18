@@ -126,15 +126,7 @@ def main():
 
                             if att[0] is not None:
                                 if str(event.obj.user_id) == str(ADMIN) and read_admin_mode() is True:
-                                    new_last_message_id = vk1.messages.send(
-                                        user_id=event.obj.user_id,
-                                        random_id=get_random_id(),
-                                        peer_id=event.obj.peer_id,
-                                        attachment=att[0]
-                                    )
-                                    new_last_message_ids.append(new_last_message_id)
-                                else:
-                                    if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
+                                    try:
                                         new_last_message_id = vk1.messages.send(
                                             user_id=event.obj.user_id,
                                             random_id=get_random_id(),
@@ -142,6 +134,22 @@ def main():
                                             attachment=att[0]
                                         )
                                         new_last_message_ids.append(new_last_message_id)
+                                    except vk_api.exceptions.ApiError as e:
+                                        if e.code != 10 or e.error['error_msg'] != 'Internal server error':
+                                            raise e
+                                else:
+                                    if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
+                                        try:
+                                            new_last_message_id = vk1.messages.send(
+                                                user_id=event.obj.user_id,
+                                                random_id=get_random_id(),
+                                                peer_id=event.obj.peer_id,
+                                                attachment=att[0]
+                                            )
+                                            new_last_message_ids.append(new_last_message_id)
+                                        except vk_api.exceptions.ApiError as e:
+                                            if e.code != 10 or e.error['error_msg'] != 'Internal server error':
+                                                raise e
                                         for title in titles:
                                             if str(title) == str(event.obj.payload.get("label")):
                                                 prod = items[counter]
