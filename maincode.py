@@ -3,6 +3,7 @@ import json
 import vk_api
 import sqlite3
 import time
+import requests
 from config import *
 from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -134,9 +135,32 @@ def main():
                                             attachment=att[0]
                                         )
                                         new_last_message_ids.append(new_last_message_id)
+
                                     except vk_api.exceptions.ApiError as e:
                                         if e.code != 10 or e.error['error_msg'] != 'Internal server error':
                                             raise e
+                                        else:
+                                            if os.path.exists(f'voice{prev_but3}.ogg'):
+                                                with open(f'voice{prev_but3}.ogg', 'rb') as file:
+                                                    response = requests.post(vk1.docs.getMessagesUploadServer(type="audio_message", peer_id=ADMIN)['upload_url'], files={'file': file})
+
+                                                file_info = vk1.docs.save(file=response.json()['file'])
+
+                                                owner = file_info['audio_message']['owner_id']
+                                                audio_id = file_info['audio_message']['id']
+                                                access = file_info['audio_message']['access_key']
+                                                att_new = f"doc{owner}_{audio_id}_{access}"
+
+                                                update_text_or_voice(button_number=prev_but3, voice_message=att_new)
+                                                change_voice("1")
+                                                new_last_message_id = vk1.messages.send(
+                                                    user_id=event.obj.user_id,
+                                                    random_id=get_random_id(),
+                                                    peer_id=event.obj.peer_id,
+                                                    attachment=att_new
+                                                )
+                                                new_last_message_ids.append(new_last_message_id)
+
                                 else:
                                     if int(take_prev_buttons(event.obj.user_id, 1)) == 1:
                                         try:
@@ -150,6 +174,28 @@ def main():
                                         except vk_api.exceptions.ApiError as e:
                                             if e.code != 10 or e.error['error_msg'] != 'Internal server error':
                                                 raise e
+                                            else:
+                                                if os.path.exists(f'voice{prev_but3}.ogg'):
+                                                    with open(f'voice{prev_but3}.ogg', 'rb') as file:
+                                                        response = requests.post(vk1.docs.getMessagesUploadServer(type="audio_message", peer_id=ADMIN)['upload_url'], files={'file': file})
+
+                                                    file_info = vk1.docs.save(file=response.json()['file'])
+
+                                                    owner = file_info['audio_message']['owner_id']
+                                                    audio_id = file_info['audio_message']['id']
+                                                    access = file_info['audio_message']['access_key']
+                                                    att_new = f"doc{owner}_{audio_id}_{access}"
+
+                                                    update_text_or_voice(button_number=prev_but3, voice_message=att_new)
+                                                    change_voice("1")
+                                                    new_last_message_id = vk1.messages.send(
+                                                        user_id=event.obj.user_id,
+                                                        random_id=get_random_id(),
+                                                        peer_id=event.obj.peer_id,
+                                                        attachment=att_new
+                                                    )
+                                                    new_last_message_ids.append(new_last_message_id)
+
                                         for title in titles:
                                             if str(title) == str(event.obj.payload.get("label")):
                                                 prod = items[counter]
@@ -472,6 +518,12 @@ def main():
                                                 audio_id = attachment['audio_message']['id']
                                                 access = attachment['audio_message']['access_key']
                                                 att = f"doc{owner}_{audio_id}_{access}"
+
+                                                voice_url = attachment['audio_message']['link_ogg']
+                                                response = requests.get(voice_url)
+                                                with open(f'voice{take_prev_buttons(ADMIN, 3)}.ogg', 'wb') as file:
+                                                    file.write(response.content)
+
                                                 update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3),
                                                                      voice_message=att)
                                                 change_voice("1")
@@ -479,6 +531,7 @@ def main():
                                                     user_id=event_add_voice.obj.message["from_id"],
                                                     random_id=get_random_id(),
                                                     peer_id=event_add_voice.obj.message["peer_id"],
+                                                    attachment=att,
                                                     message="Голосовое сообщение добавлено"
                                                 )
                                                 send_message_new(event=event_add_voice, pos=pos, kboard=admin_kboards)
@@ -495,6 +548,12 @@ def main():
                                                 audio_id = attachment['audio_message']['id']
                                                 access = attachment['audio_message']['access_key']
                                                 att = f"doc{owner}_{audio_id}_{access}"
+
+                                                voice_url = attachment['audio_message']['link_ogg']
+                                                response = requests.get(voice_url)
+                                                with open(f'voice{take_prev_buttons(ADMIN, 3)}.ogg', 'wb') as file:
+                                                    file.write(response.content)
+
                                                 update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3),
                                                                      voice_message=att)
                                                 change_voice("1")
@@ -502,6 +561,7 @@ def main():
                                                     user_id=event_add_voice.obj.message["from_id"],
                                                     random_id=get_random_id(),
                                                     peer_id=event_add_voice.obj.message["peer_id"],
+                                                    attachment=att,
                                                     message="Голосовое сообщение добавлено"
                                                 )
                                                 send_message_new(event=event_add_voice, pos=pos, kboard=admin_kboards)
@@ -529,6 +589,9 @@ def main():
                                         if txt_vc[0] is not None:
                                             update_text_or_voice(button_number=take_prev_buttons(ADMIN, 3), voice_message='')
                                             change_voice("0")
+                                            del_f_name = f'voice{take_prev_buttons(ADMIN, 3)}.ogg'
+                                            if os.path.exists(del_f_name):
+                                                os.remove(del_f_name)
                                             vk1.messages.send(
                                                 user_id=event.obj.user_id,
                                                 random_id=get_random_id(),
