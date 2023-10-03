@@ -387,6 +387,9 @@ def main():
                                                     if vc is not None or txt is not None:
                                                         update_text_or_voice(button_number=btn, text_message='',
                                                                              voice_message='')
+                                                        del_f_name = f'voice{btn}.ogg'
+                                                        if os.path.exists(del_f_name):
+                                                            os.remove(del_f_name)
                                                     del keyboard2[i]
 
                                         if pos == 2:
@@ -401,6 +404,9 @@ def main():
                                                     if vc is not None or txt is not None:
                                                         update_text_or_voice(button_number=butt2, text_message='',
                                                                              voice_message='')
+                                                        del_f_name = f'voice{butt2}.ogg'
+                                                        if os.path.exists(del_f_name):
+                                                            os.remove(del_f_name)
                                                         p1 = eval(keyboard1[pb][0]['action']['payload'])
                                                         p1['voice'] = "0"
                                                         p1['text'] = "0"
