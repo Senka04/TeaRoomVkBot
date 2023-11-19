@@ -4,6 +4,7 @@ import vk_api
 import sqlite3
 import time
 import requests
+import re
 from config import *
 from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -119,7 +120,11 @@ def main():
                             items = market_respose['items']
                             titles = []
                             for item in items:
-                                titles.append(item['title'])
+                                quote = re.findall(r'«(.+?)»', str(item['title']))
+                                if len(quote) != 0:
+                                    titles.append(quote[1])
+                                else:
+                                    titles.append(item['title'])
 
                             counter = 0
                             att = take_text_or_voice(prev_but3)
