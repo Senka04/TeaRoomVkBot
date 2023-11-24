@@ -4,7 +4,6 @@ import vk_api
 import sqlite3
 import time
 import requests
-import re
 from config import *
 from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
@@ -119,12 +118,19 @@ def main():
 
                             items = market_respose['items']
                             titles = []
+                            div_symbols = ['-', '—']
+                            part_split = None
                             for item in items:
-                                quote = re.findall(r'«(.+?)»', str(item['title']))
-                                if len(quote) != 0:
-                                    titles.append(quote[1])
+                                for div_symbol in div_symbols:
+                                    part_split = str(item['title']).split(div_symbol, maxsplit=1)
+                                    if len(part_split) > 1:
+                                        break
+                                if len(part_split) > 1:
+                                    part_strip = part_split[1].strip()
                                 else:
-                                    titles.append(item['title'])
+                                    part_strip = part_split[0].strip()
+
+                                titles.append(str(part_strip))
 
                             counter = 0
                             att = take_text_or_voice(prev_but3)
